@@ -6,9 +6,9 @@ const upload = multer();
 
 const app = Express();
 
-app.set('view-engine', 'ejs')
+app.set('view-engine', 'ejs');
 
-app.use(Express.json())
+app.use(Express.json());
 
 app.use(Express.urlencoded({ extended: false}));
 
@@ -93,12 +93,12 @@ app.post('/create', (req, res) => {
         game_version: req.body.gameVersion,
         lobby_size: parseInt(req.body.lobbySize),
         players: [],
-    }
+    };
 
     req.session.lobby = new_code;
 
-    res.redirect(`/lobby/${new_code}`)
-})
+    res.redirect(`/lobby/${new_code}`);
+});
 
 
 app.get('/lobby/:lobbyID', (req, res) => {
@@ -108,8 +108,8 @@ app.get('/lobby/:lobbyID', (req, res) => {
         res.redirect('/');
         return;
     }
-    res.render('lobby.ejs')
-})
+    res.render('lobby.ejs');
+});
 
 app.get('/lobby/:lobbyID/messages', (req, res) => {
     // authenticate and get messages
@@ -117,22 +117,22 @@ app.get('/lobby/:lobbyID/messages', (req, res) => {
         // flash error message
         res.redirect('/connect');
     }
-})
+});
 
 app.post('/lobby/:lobbyID/messages', (req, res) => {
     // authenticate and post message
-})
+});
 
 
 app.post('/lobby/:lobbyID/upload', (req, res) => {
     // authenticate and upload save data
-})
+});
 
 // might need to do some socket polling to determine active users
 app.post('/lobby/:lobbyID/swap', (req, res) => {
     // start swap if all players in lobbsy locked in
     // otherwise just update that player X is ready
-})
+});
 
 app.get('/lobby/:lobbyID/download', (req, res) => {
     // authenticate and recieve save data from lobby
@@ -141,17 +141,17 @@ app.get('/lobby/:lobbyID/download', (req, res) => {
         // flash error message
         res.redirect('/connect');
     }
-})
+});
 
 
 app.post('/logout', (req, res) => {
     req.session.lobby = undefined;
     // TODO: lobby should check for players
     // if none, delete/queue-delete lobby
-    res.redirect('/')
+    res.redirect('/');
 });
 
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => console.log(`Server started on port ${PORT}`))
+app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
