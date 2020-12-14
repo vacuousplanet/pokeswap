@@ -1,0 +1,26 @@
+{
+  "name": "pokeswap",
+  "version": "0.0.1",
+  "description": "'deployable server for pokeswap session management'",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js",
+    "dev": "nodemon index"
+  },
+  "author": "Adam Kagel, Maclean Hartford",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@types/express": "^4.17.9",
+    "ejs": "^3.1.5",
+    "express": "^4.17.1",
+    "express-session": "^1.17.1",
+    "multer": "^1.4.2"
+  },
+  "devDependencies": {
+    "@types/express-session": "^1.17.3",
+    "@types/multer": "^1.4.5",
+    "nodemon": "^2.0.6"
+  }
+}

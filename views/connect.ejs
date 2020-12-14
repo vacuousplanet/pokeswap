@@ -1,0 +1,69 @@
+<%- include('partials/header'); %>
+
+<ul class="nav nav-tabs" id="connectTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <a class="nav-link active" id="create-tab" data-bs-toggle="tab" href="#create" role="tab" aria-selected="true" aria-controls="create">
+            Create
+        </a>
+    </li>
+    <li class="nav-item" role="presentation">
+        <a class="nav-link" id="connect-tab" data-bs-toggle="tab" href="#connect" role="tab" aria-selected="false" aria-controls="connect">
+            Connect
+        </a>
+    </li>
+</ul>
+<div class="tab-content mt-4">
+    <div class="tab-pane fade show active" id="create" role="tabpanel" aria-labelledby="create-tab">
+        <form action="/create" method="POST">
+            <div class="mb-3">
+                <label for="usernameCreate" class="form-label">Username</label>
+                <input type="text" class="form-control" id="usernameCreate" name="usernameCreate">
+            </div>
+            <div class="mb-3">
+                <label for="gameVersion" class="form-label">Game Version</label>
+                <select class="form-select" id="gameVersion" name="gameVersion">
+                    <option selected>Choose a game version</option>
+                    <option value="1">R/S/E</option>
+                    <option value="2">FR/LG</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="lobbySize" class="form-label">Lobby Size</label>
+                <input type="number" class="form-control" id="lobbySize" name="lobbySize" min="2" max="10" placeholder="2">
+            </div>
+            <button type="submit" class="btn btn-primary">Create Lobby</button>
+        </form>
+    </div>
+    <div class="tab-pane fade" id="connect" role="tabpanel" aria-labelledby="connect-tab">
+        <form action="/connect" method="POST">
+            <div class="mb-3">
+                <label for="usernameConnect" class="form-label">Username</label>
+                <input type="text" class="form-control" id="usernameConnect">
+            </div>
+            <div class="mb-3">
+                <label for="lobbyID" class="form-label">Lobby Code</label>
+                <input type="text" class="form-control" id="lobbyID">
+            </div>
+            <div class="mb-3">
+                <label for="lobbyPW" class="form-label">Lobby Password</label>
+                <input type="text" class="form-control" id="lobbyPW">
+            </div>
+            <button type="submit" class="btn btn-primary">Connect</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // script for tab content filling
+    var triggerTabList = [].slice.call(document.querySelectorAll('#connectTabs a'));
+    triggerTabList.forEach(function (triggerEl) {
+        var tabTrigger = new boostrap.Tab(triggerEl);
+
+        triggerEl.addEventListener('click', function (event) {
+            event.preventDefault();
+            tabTrigger.show();
+        });
+    });
+</script>
+
+<%- include('partials/footer'); %>
