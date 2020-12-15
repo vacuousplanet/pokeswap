@@ -29,12 +29,15 @@
 </div>
 
 <script>
+// access document elements
 var upload_button = document.getElementById('uploadButton');
 var file_upload = document.getElementById('saveFile');
 
+// upload is disabled by default
 upload_button.disabled = true;
 upload_button.className = "btn btn-muted";
 
+// aesthetic disabling for upload button
 file_upload.addEventListener('change', () => {
     if (file_upload.value === ""){
         upload_button.disabled = true;
@@ -45,9 +48,9 @@ file_upload.addEventListener('change', () => {
     }
 });
 
-
-// TODO: Make this async and depend on responce from server
+// check server for upload status
 upload_button.addEventListener('click', async () => {
+    // TODO: could limit number of tries and set sleep time ?
     while(true){
         var status_result = await fetch(
             "/lobby/" + "<%=lobbyID%>" + "/check-upload-success", {
@@ -63,8 +66,10 @@ upload_button.addEventListener('click', async () => {
     }
     if (status_result === 'success'){
         upload_button.className = "btn btn-success"
+        // TODO: more triggers
     } else {
         upload_button.className = "btn btn-danger"
+        // TODO: flash error message
     }
 });
 </script>
