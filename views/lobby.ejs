@@ -45,10 +45,28 @@ file_upload.addEventListener('change', () => {
     }
 });
 
+
 // TODO: Make this async and depend on responce from server
-upload_button.addEventListener('click', () => {
-    upload_button.className = "btn btn-success";
-})
+upload_button.addEventListener('click', async () => {
+    while(true){
+        var status_result = await fetch(
+            "/lobby/" + "<%=lobbyID%>" + "/check-upload-success", {
+                method: 'get',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            }
+        ).then(res=>res.json()).then(res=>res['status']);
+        if(status_result != 'waiting'){
+            break;
+        }
+    }
+    if (status_result === 'success'){
+        upload_button.className = "btn btn-success"
+    } else {
+        upload_button.className = "btn btn-danger"
+    }
+});
 </script>
 
 <%- include('partials/footer'); %>
