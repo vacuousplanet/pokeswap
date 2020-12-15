@@ -2,7 +2,7 @@ import Express from "express";
 import session from "express-session";
 import multer from "multer";
 
-const upload = multer();
+const upload = multer({dest: './public/data/uploads/'});
 
 const app = Express();
 
@@ -12,7 +12,7 @@ app.use(Express.json());
 
 app.use(Express.urlencoded({ extended: false}));
 
-app.use(upload.array());
+//app.use(upload.array());
 app.use(Express.static('public'));
 
 // TODO: dotenv secret phrase
@@ -113,8 +113,10 @@ app.get('/lobby/:lobbyID', (req, res) => {
         res.redirect('/');
         return;
     }
+
     res.render('lobby.ejs', {
         lobbyID: req.params['lobbyID'],
+        lobbyState: req.session.lobbyState,
     });
 });
 
@@ -131,7 +133,7 @@ app.post('/lobby/:lobbyID/messages', (req, res) => {
 });
 
 
-app.post('/lobby/:lobbyID/upload', (req, res) => {
+app.post('/lobby/:lobbyID/upload', upload.single('saveFile'), (req, res) => {
     // authenticate and upload save data
     if(!(req.params['lobbyID'] in lobbies)) {
         console.log('not a valid lobby');
@@ -139,19 +141,19 @@ app.post('/lobby/:lobbyID/upload', (req, res) => {
     }
     // TODO: validate user
 
-    // validate save file (idk exactly how deep this would go)
     var lobby = lobbies[req.params['lobbyID']];
-
-    const data = 0;
+    // TODO: validate save file (idk exactly how deep this would go)
 
     // map player to uploaded file and add to lobby data
     lobby['uploads'][req.session.username] = {
-        data: data,
+        data: req.file,
         status: 'success',
     };
 
-});
+    // return 204 Code
+    res.status(204).send();
 
+});
 
 app.get('/lobby/:lobbyID/check-upload-success', (req, res) => {
     if(!(req.params['lobbyID'] in lobbies)) {
@@ -169,6 +171,19 @@ app.get('/lobby/:lobbyID/check-upload-success', (req, res) => {
             status : lobby['uploads'][req.session.username]['status'],
         })
     }
+});
+
+
+app.post('/lobby/:lobbyID/update-lobby-status', (req, res) => {
+    if(!(req.params['lobbyID'] in lobbies)) {
+        console.log('not a valid lobby');
+        return;
+    }
+    console.log(req.body.lobby_state)
+    req.session.lobbyState = req.body.lobby_state;
+
+    // everything's fine
+    res.status(204).send();
 });
 
 // might need to do some socket polling to determine active users

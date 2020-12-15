@@ -14,9 +14,20 @@
             </div>
         </div>
         <div class="col-sm">
-            <form action=<%=`/lobby/${lobbyID}/upload`%> method="POST">
+            <form action=<%=`/lobby/${lobbyID}/upload`%> enctype="multipart/form-data" method="POST">
                 <input type="file" name="saveFile" id="saveFile">
-                <button type="submit" class="btn btn-primary" id="uploadButton">Upload Save File</button>
+                <% if (lobbyState === undefined) { %>
+                    <button type="submit" class="btn btn-muted" id="uploadButton" disabled>Upload Save File</button>
+                <% } else if (lobbyState === "UPLOAD_SUCCESS") { %>
+                    <button type="submit" class="btn btn-success" id="uploadButton" disabled>Upload Successful</button>
+                <% } %>
+            </form>
+            <form action=<%=`/lobby/${lobbyID}/swap`%> method="POST">
+                <% if (lobbyState === undefined) { %>
+                    <button type="submit" class="btn btn-muted w-100" id="swapButton" disabled>Please upload save file...</button>
+                <% } else if (lobbyState === "UPLOAD_SUCCESS") { %>
+                    <button type="submit" class="btn btn-muted w-100" id="swapButton" disabled>Waiting on other players...</button>
+                <% } %>
             </form>
         </div>
     </div>
@@ -29,19 +40,32 @@
 </div>
 
 <script>
+// TODO: send lobby-player state to server
+// this helps with reloading consistent content
+// and manages ui field access.
+
 // access document elements
 var upload_button = document.getElementById('uploadButton');
+var swap_button = document.getElementById('swapButton');
 var file_upload = document.getElementById('saveFile');
 
-// upload is disabled by default
-upload_button.disabled = true;
-upload_button.className = "btn btn-muted";
-
 // aesthetic disabling for upload button
-file_upload.addEventListener('change', () => {
+file_upload.addEventListener('change', async () => {
     if (file_upload.value === ""){
         upload_button.disabled = true;
         upload_button.className = "btn btn-muted";
+
+        // send state update to server
+        const result = await fetch("/lobby/" + "<%=lobbyID%>" + "/update-lobby-status", {
+            method: 'post',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                lobby_state: undefined,
+            })
+        });
+
     } else {
         upload_button.disabled = false;
         upload_button.className = "btn btn-primary";
@@ -65,8 +89,23 @@ upload_button.addEventListener('click', async () => {
         }
     }
     if (status_result === 'success'){
-        upload_button.className = "btn btn-success"
-        // TODO: more triggers
+        // lock out more uploads
+        upload_button.className = "btn btn-success";
+        upload_button.disabled = true;
+        upload_button.innerText = "Upload Successful";
+
+        swap_button.innerText = "Waiting on other players...";
+
+        // send state update to server
+        const result = await fetch("/lobby/" + "<%=lobbyID%>" + "/update-lobby-status", {
+            method: 'post',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                lobby_state: 'UPLOAD_SUCCESS',
+            })
+        });
     } else {
         upload_button.className = "btn btn-danger"
         // TODO: flash error message
