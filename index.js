@@ -93,9 +93,14 @@ app.post('/create', (req, res) => {
         game_version: req.body.gameVersion,
         lobby_size: parseInt(req.body.lobbySize),
         players: [],
+        uploads: {},
+        downloads: {},
     };
 
     req.session.lobby = new_code;
+    req.session.username = req.body.usernameCreate;
+
+    lobbies[new_code]['players'].push(req.body.usernameCreate);
 
     res.redirect(`/lobby/${new_code}`);
 });
@@ -108,7 +113,9 @@ app.get('/lobby/:lobbyID', (req, res) => {
         res.redirect('/');
         return;
     }
-    res.render('lobby.ejs');
+    res.render('lobby.ejs', {
+        lobbyID: req.params['lobbyID'],
+    });
 });
 
 app.get('/lobby/:lobbyID/messages', (req, res) => {
@@ -126,6 +133,42 @@ app.post('/lobby/:lobbyID/messages', (req, res) => {
 
 app.post('/lobby/:lobbyID/upload', (req, res) => {
     // authenticate and upload save data
+    if(!(req.params['lobbyID'] in lobbies)) {
+        console.log('not a valid lobby');
+        return;
+    }
+    // TODO: validate user
+
+    // validate save file (idk exactly how deep this would go)
+    var lobby = lobbies[req.params['lobbyID']];
+
+    const data = 0;
+
+    // map player to uploaded file and add to lobby data
+    lobby['uploads'][req.session.username] = {
+        data: data,
+        status: 'success',
+    };
+
+});
+
+
+app.get('/lobby/:lobbyID/check-upload-success', (req, res) => {
+    if(!(req.params['lobbyID'] in lobbies)) {
+        console.log('not a valid lobby');
+        return;
+    }
+
+    var lobby = lobbies[req.params['lobbyID']];
+    if(lobby['uploads'][req.session.username] === undefined){
+        res.json({
+            status : 'waiting',
+        })
+    } else {
+        res.json({
+            status : lobby['uploads'][req.session.username]['status'],
+        })
+    }
 });
 
 // might need to do some socket polling to determine active users

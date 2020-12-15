@@ -1,8 +1,54 @@
 <%- include('partials/header'); %>
-    <div class="p3 mb-3">
-        <form action="/logout" method="POST">
-            <button class="btn btn-primary" type="submit">Logout</button>
-        </form>
+
+<div class="container-fluid">
+    <div class="row pt-3 pb-3">
+        <div class="col-sm">
+            <div class="border">
+                <div class="overflow-auto p-2" style="height: 250px;">
+                    <!-- Get messages here! -->
+                    Chat messages go here
+                </div>
+                <div class="border rounded">
+                    <input type="text" class="w-100">
+                </div>
+            </div>
+        </div>
+        <div class="col-sm">
+            <form action=<%=`/lobby/${lobbyID}/upload`%> method="POST">
+                <input type="file" name="saveFile" id="saveFile">
+                <button type="submit" class="btn btn-primary" id="uploadButton">Upload Save File</button>
+            </form>
+        </div>
     </div>
+</div>
+
+<div class="p3 mb-3">
+    <form action="/logout" method="POST">
+        <button class="btn btn-primary" type="submit">Logout</button>
+    </form>
+</div>
+
+<script>
+var upload_button = document.getElementById('uploadButton');
+var file_upload = document.getElementById('saveFile');
+
+upload_button.disabled = true;
+upload_button.className = "btn btn-muted";
+
+file_upload.addEventListener('change', () => {
+    if (file_upload.value === ""){
+        upload_button.disabled = true;
+        upload_button.className = "btn btn-muted";
+    } else {
+        upload_button.disabled = false;
+        upload_button.className = "btn btn-primary";
+    }
+});
+
+// TODO: Make this async and depend on responce from server
+upload_button.addEventListener('click', () => {
+    upload_button.className = "btn btn-success";
+})
+</script>
 
 <%- include('partials/footer'); %>
