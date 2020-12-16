@@ -15,7 +15,12 @@
         </div>
         <div class="col-sm">
             <form action=<%=`/lobby/${lobbyID}/upload`%> enctype="multipart/form-data" method="POST">
-                <input type="file" name="saveFile" id="saveFile">
+                <% if (lobbyState === undefined) { %>
+                    <input type="file" name="saveFile" id="saveFile">
+                <% } else { %>
+                    <input type="file" name="saveFile" id="saveFile" disabled>
+                <% } %>
+
                 <% if (lobbyState === undefined) { %>
                     <button type="submit" class="btn btn-muted" id="uploadButton" disabled>Upload Save File</button>
                 <% } else if (lobbyState === "UPLOAD_SUCCESS" || lobbyState === "UPLOADS_FULL") { %>
@@ -123,6 +128,8 @@ upload_button.addEventListener('click', async () => {
         upload_button.innerText = "Upload Successful";
 
         swap_button.innerText = "Waiting on other players...";
+
+        file_upload.disabled = true;
 
         // send state update to server
         const result = await fetch(lobby_url + "/update-lobby-status", {

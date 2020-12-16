@@ -93,12 +93,11 @@ app.post('/create', (req, res) => {
         return;
     }
     // check for correct username
-    // TODO: highlight username field as red
     if(req.body.usernameCreate === '') {
         console.log('must fill username');
         return;
     }
-    // TODO: highlight gameVersion field as red
+
     else if(req.body.gameVersion === 'Choose a game version'){
         console.log('must choose game version');
         return;
@@ -233,9 +232,8 @@ app.get('/lobby/:lobbyID/check-uploads', async (req, res) => {
 });
 
 
-// might need to do some socket polling to determine active users
 app.post('/lobby/:lobbyID/swap', (req, res) => {
-    // start swap if all players in lobbsy locked in
+    // start swap if all players in lobby locked in
     // otherwise just update that player X is ready
 });
 
