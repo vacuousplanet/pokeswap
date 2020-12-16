@@ -202,7 +202,6 @@ app.get('/lobby/:lobbyID/check-upload-success', (req, res) => {
     }
 });
 
-
 app.post('/lobby/:lobbyID/update-lobby-status', (req, res) => {
     if(!(req.params['lobbyID'] in lobbies)) {
         console.log('not a valid lobby');
@@ -214,6 +213,25 @@ app.post('/lobby/:lobbyID/update-lobby-status', (req, res) => {
     // everything's fine
     res.status(204).send();
 });
+
+app.get('/lobby/:lobbyID/check-uploads', async (req, res) => {
+    if(!(req.params['lobbyID'] in lobbies)) {
+        console.log('not a valid lobby');
+        return;
+    }
+
+    var lobby = lobbies[req.params['lobbyID']];
+
+    const remaining = lobby['lobby_size'] - Object.keys(lobby['uploads']).length;
+    if (remaining === 0) {
+        req.session.lobbyState = "UPLOADS_FULL";
+    }
+
+    res.json({
+        remaining: remaining,
+    });
+});
+
 
 // might need to do some socket polling to determine active users
 app.post('/lobby/:lobbyID/swap', (req, res) => {
