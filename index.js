@@ -53,9 +53,38 @@ app.post('/connect', (req, res) => {
 
     // disallow lobby connection for lobbied users
     if (req.session.lobby in lobbies) {
+        res.status(204).send();
         return;
     }
 
+    // check for lobby existence
+    if(!(req.body.lobbyID in lobbies)) {
+        res.status(204).send();
+        console.log('invalid lobby');
+        return;
+    }
+
+    // create reference to lobby
+    var lobby = lobbies[req.body.lobbyID];
+
+    // don't overfill lobby
+    if (lobby['lobby_size'] <= lobby['players'].length) {
+        console.log('lobby full!');
+        res.status(204).send();
+        return;
+    }
+
+    // this is kinda bad tbh
+    while(lobby['players'].includes(req.body.usernameConnect)) {
+        req.body.usernameConnect += '0';
+    }
+
+    req.session.lobby = req.body.lobbyID;
+    req.session.username = req.body.usernameConnect;
+
+    lobby['players'].push(req.body.usernameConnect);
+
+    res.redirect(`lobby/${req.body.lobbyID}`);
 });
 
 app.post('/create', (req, res) => {
