@@ -124,6 +124,7 @@ app.post('/create', (req, res) => {
         lobby_size: parseInt(req.body.lobbySize),
         players: [],
         uploads: {},
+        downloads: false,
     };
 
     req.session.lobby = new_code;
@@ -256,7 +257,7 @@ app.post('/lobby/:lobbyID/swap', (req, res) => {
 
     if (!start_swap) {
         // TODO: respond with a thing involving users not ready
-
+        res.status(204).send();
         return;
     }
 
@@ -266,8 +267,32 @@ app.post('/lobby/:lobbyID/swap', (req, res) => {
         lobby['game_version']
     );
 
-    // TODO: respond with a thing involving downloads ready
+    lobby['downloads'] = true;
+
+    res.status(204).send();
+
+    return;
     
+});
+
+app.get('/lobby/:lobbyID/check-swap', (req, res) => {
+    if(!(req.params['lobbyID'] in lobbies)) {
+        console.log('not a valid lobby');
+        return;
+    }
+
+    var lobby = lobbies[req.params['lobbyID']];
+
+    var users_not_ready = 0;
+    for (const username in lobby['uploads']) {
+        const user_ready = (lobby['uploads'][username]['status'] === 'ready');
+        users_not_ready += Number(!user_ready);
+    }
+
+    res.json({
+        remaining: remaining,
+        downloads: lobby['downloads'],
+    });
 });
 
 app.get('/lobby/:lobbyID/download', (req, res) => {

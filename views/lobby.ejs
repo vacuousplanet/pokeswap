@@ -165,13 +165,20 @@ swap_button.addEventListener('click', async () => {
                     'Accept': 'application/json',
                 },
             }
-        ).then(res=>res.json()).then(res=>res['remaining']);
-        if (status_result=== undefined){
+        ).then(res=>res.json());
+        if (status_result['remaining']=== undefined){
             console.log('is problem');
-        } else if (status_result === 0) {
-            break;
+        } else if (status_result['remaining'] === 0) {
+            if (status_results['downloads']) {
+                break;
+            }
+            else {
+                swap_button.innerText = 'Running Swap...';
+                swap_button.className = "btn btn-success w-100";
+                swap_button.disabled = true;
+            }
         } else {
-            swap_button.innerText = `Waiting on ${status_result} players...`;
+            swap_button.innerText = `Waiting on ${status_result['remaining']} players...`;
             swap_button.className = "btn btn-success w-100";
             swap_button.disabled = true;
         }
