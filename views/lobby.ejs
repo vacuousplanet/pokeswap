@@ -109,7 +109,7 @@ file_upload.addEventListener('change', async () => {
 // check server for upload status
 upload_button.addEventListener('click', async () => {
     // TODO: could limit number of tries and set sleep time ?
-    upload_button.disabled = true;
+    //upload_button.disabled = true;
     while(true){
         var status_result = await fetch(
             lobby_url + "/check-upload-success", {
@@ -156,7 +156,7 @@ upload_button.addEventListener('click', async () => {
 
 // check server for swapping status
 swap_button.addEventListener('click', async () => {
-    swap_button.disabled = true;
+    //swap_button.disabled = true;
     while(true) {
         var status_result = await fetch(
             lobby_url + "/check-swap", {
@@ -169,7 +169,7 @@ swap_button.addEventListener('click', async () => {
         if (status_result['remaining']=== undefined){
             console.log('is problem');
         } else if (status_result['remaining'] === 0) {
-            if (status_results['downloads']) {
+            if (status_result['downloads']) {
                 break;
             }
             else {

@@ -2,7 +2,7 @@ import Express from "express";
 import session from "express-session";
 import multer from "multer";
 
-import {multicheckswap} from "./src/checkswap";
+import {multicheckswap} from "./src/checkswap.js";
 
 const upload = multer({dest: './public/data/uploads/'});
 
@@ -118,9 +118,10 @@ app.post('/create', (req, res) => {
     // TODO: generate password and pre-authenticate session
 
     // might want to specify Lobby object ?
+    console.log(req.body.gameVersion.replace(/\//g, ''));
     lobbies[new_code] = {
         password: 'lmao',
-        game_version: req.body.gameVersion.replace('/', ''),
+        game_version: req.body.gameVersion.replace(/\//g, ''),
         lobby_size: parseInt(req.body.lobbySize),
         players: [],
         uploads: {},
@@ -263,7 +264,7 @@ app.post('/lobby/:lobbyID/swap', (req, res) => {
 
     // otherwise, do the swapping
     multicheckswap(
-        Object.keys(lobby['uploads']).map( key => lobby['uploads'][key]['data'][path]),
+        Object.keys(lobby['uploads']).map( key => lobby['uploads'][key]['data']['path']),
         lobby['game_version']
     );
 
@@ -290,12 +291,12 @@ app.get('/lobby/:lobbyID/check-swap', (req, res) => {
     }
 
     res.json({
-        remaining: remaining,
+        remaining: users_not_ready,
         downloads: lobby['downloads'],
     });
 });
 
-app.get('/lobby/:lobbyID/download', (req, res) => {
+app.post('/lobby/:lobbyID/download', (req, res) => {
     // authenticate and recieve save data from lobby
     if(!(req.params['lobbyID'] in lobbies)) {
         // flash error message or something idk
@@ -303,7 +304,7 @@ app.get('/lobby/:lobbyID/download', (req, res) => {
         return;
     }
 
-    const file = lobbies[req.params['lobbyID']]['uploads'][req.session.username]['data'][path];
+    const file = lobbies[req.params['lobbyID']]['uploads'][req.session.username]['data']['path'];
 
     // TODO: Check that file is actually ready!!!
     res.download(file);

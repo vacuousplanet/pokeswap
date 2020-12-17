@@ -1,4 +1,4 @@
-import { readFileSync, writeFile } from 'fs';
+import { readFileSync, writeFile, writeFileSync } from 'fs';
 
 // section dependent structure ( probably move into dictionary )
 const section_data_size = 0x0F80;
@@ -108,8 +108,11 @@ export function multicheckswap(filenames, game_version) {
         save_write_map[rand_order[i]] = pc;
     });
 
+    console.log(save_write_map);
+
     // copy original save data
     var team_offset = team_offset_map[game_version];
+    console.log(team_offset)
     var team_data = buffers.map((buffer, index) => 
         Buffer.from(buffer.subarray(
             section_starts[index] + team_offset,
@@ -119,11 +122,9 @@ export function multicheckswap(filenames, game_version) {
 
     // overwrite buffers with new team_data
     save_write_map.forEach( (write_to_idx, write_from_idx) => {
-        buffers[write_from_idx].copy(
+        team_data[write_from_idx].copy(
             buffers[write_to_idx],
-            section_starts[write_to_idx] + team_offset,
-            section_starts[write_from_idx] + team_offset,
-            section_starts[write_from_idx] + team_offset + team_length
+            section_starts[write_to_idx] + team_offset
         );
     });
 
@@ -137,7 +138,8 @@ export function multicheckswap(filenames, game_version) {
 
     // overwrite files
     filenames.forEach( (filename, index) => {
-        writeFile(filename, buffers[index], (err) => {
+        console.log(`Writing to file ${filename}...`);
+        writeFileSync(filename, buffers[index], (err) => {
             if (err)
                 throw err;
         });
