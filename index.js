@@ -2,6 +2,8 @@ import Express from "express";
 import session from "express-session";
 import multer from "multer";
 
+import {multicheckswap} from "./src/checkswap";
+
 const upload = multer({dest: './public/data/uploads/'});
 
 const app = Express();
@@ -118,11 +120,10 @@ app.post('/create', (req, res) => {
     // might want to specify Lobby object ?
     lobbies[new_code] = {
         password: 'lmao',
-        game_version: req.body.gameVersion,
+        game_version: req.body.gameVersion.replace('/', ''),
         lobby_size: parseInt(req.body.lobbySize),
         players: [],
         uploads: {},
-        downloads: {},
     };
 
     req.session.lobby = new_code;
@@ -235,22 +236,63 @@ app.get('/lobby/:lobbyID/check-uploads', async (req, res) => {
 app.post('/lobby/:lobbyID/swap', (req, res) => {
     // start swap if all players in lobby locked in
     // otherwise just update that player X is ready
+    if (!(req.params['lobbyID'] in lobbies)) {
+        res.status(204).send();
+        return;
+    }
+
+    // update upload status to ready and 
+    var lobby = lobbies[req.params['lobbyID']];
+
+    lobby['uploads'][req.session.username]['status'] = 'ready';
+
+    var start_swap = true;
+    var users_not_ready = 0;
+    for (const username in lobby['uploads']) {
+        const user_ready = (lobby['uploads'][username]['status'] === 'ready');
+        users_not_ready += Number(!user_ready);
+        start_swap = start_swap && user_ready;
+    }
+
+    if (!start_swap) {
+        // TODO: respond with a thing involving users not ready
+
+        return;
+    }
+
+    // otherwise, do the swapping
+    multicheckswap(
+        Object.keys(lobby['uploads']).map( key => lobby['uploads'][key]['data'][path]),
+        lobby['game_version']
+    );
+
+    // TODO: respond with a thing involving downloads ready
+    
 });
 
 app.get('/lobby/:lobbyID/download', (req, res) => {
     // authenticate and recieve save data from lobby
-    // client will ping download until done/error
     if(!(req.params['lobbyID'] in lobbies)) {
-        // flash error message
+        // flash error message or something idk
         res.redirect('/connect');
+        return;
     }
+
+    const file = lobbies[req.params['lobbyID']]['uploads'][req.session.username]['data'][path];
+
+    // TODO: Check that file is actually ready!!!
+    res.download(file);
+
 });
 
 
 app.post('/logout', (req, res) => {
     req.session.lobby = undefined;
     // TODO: lobby should check for players
-    // if none, delete/queue-delete lobby
+    //       if none, delete/queue-delete lobby
+
+    // TODO: delete other session parameters (username, etc)
+    //       as well as any other user specific data (uploads)
     res.redirect('/');
 });
 
