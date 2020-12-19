@@ -118,7 +118,6 @@ app.post('/create', (req, res) => {
     // TODO: generate password and pre-authenticate session
 
     // might want to specify Lobby object ?
-    console.log(req.body.gameVersion.replace(/\//g, ''));
     lobbies[new_code] = {
         password: 'lmao',
         game_version: req.body.gameVersion.replace(/\//g, ''),
