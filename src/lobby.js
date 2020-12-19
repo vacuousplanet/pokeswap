@@ -22,7 +22,6 @@
 // Client/player html data depends on BOTH player and lobby states
 
 
-
 // Base lobby class
 // This handles stuff like actual functionality
 class LobbyBase {

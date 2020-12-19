@@ -24,14 +24,30 @@ app.use(session({
     saveUninitialized: false,
 }));
 
-// use routes maybe?
-// routes
-//      lobby/ID#
-//      lobby/ID#/messages
-//      
 var lobbies = {};
 
-// landing
+
+// lobby and user validation middleware
+app.use('/lobby/:lobbyID', (req, res, next) => {
+    // check for lobby existance
+    if (!(req.params['lobbyID'] in lobbies)) {
+        res.redirect('/')
+        return;
+    }
+    var lobby = lobbies[req.params['lobbyID']];
+
+    // check for user in lobby
+    if (!(lobby['players'].includes(req.session.username))) {
+        res.redirect('/')
+        return;
+    }
+
+    // continue routing otherwise
+    next();
+});
+
+
+// landing page
 app.get('/', (req, res) => {
     // check for lobby existence
     if(!req.session.lobby || !(req.session.lobby in lobbies)) {
@@ -137,13 +153,6 @@ app.post('/create', (req, res) => {
 
 
 app.get('/lobby/:lobbyID', (req, res) => {
-    // authenticate and render lobby page
-    if(!(req.params['lobbyID'] in lobbies)) {
-        // flash error message
-        res.redirect('/');
-        return;
-    }
-
     res.render('lobby.ejs', {
         lobbyID: req.params['lobbyID'],
         lobbyState: req.session.lobbyState,
@@ -151,11 +160,7 @@ app.get('/lobby/:lobbyID', (req, res) => {
 });
 
 app.get('/lobby/:lobbyID/messages', (req, res) => {
-    // authenticate and get messages
-    if(!(req.params['lobbyID'] in lobbies)) {
-        // flash error message
-        res.redirect('/connect');
-    }
+
 });
 
 app.post('/lobby/:lobbyID/messages', (req, res) => {
@@ -164,12 +169,6 @@ app.post('/lobby/:lobbyID/messages', (req, res) => {
 
 
 app.post('/lobby/:lobbyID/upload', upload.single('saveFile'), (req, res) => {
-    // authenticate and upload save data
-    if(!(req.params['lobbyID'] in lobbies)) {
-        console.log('not a valid lobby');
-        return;
-    }
-    // TODO: validate user
 
     var lobby = lobbies[req.params['lobbyID']];
     // TODO: validate save file (idk exactly how deep this would go)
@@ -186,10 +185,6 @@ app.post('/lobby/:lobbyID/upload', upload.single('saveFile'), (req, res) => {
 });
 
 app.get('/lobby/:lobbyID/check-upload-success', (req, res) => {
-    if(!(req.params['lobbyID'] in lobbies)) {
-        console.log('not a valid lobby');
-        return;
-    }
 
     var lobby = lobbies[req.params['lobbyID']];
     if(lobby['uploads'][req.session.username] === undefined){
@@ -204,10 +199,7 @@ app.get('/lobby/:lobbyID/check-upload-success', (req, res) => {
 });
 
 app.post('/lobby/:lobbyID/update-lobby-status', (req, res) => {
-    if(!(req.params['lobbyID'] in lobbies)) {
-        console.log('not a valid lobby');
-        return;
-    }
+
     console.log(req.body.lobby_state)
     req.session.lobbyState = req.body.lobby_state;
 
@@ -216,10 +208,7 @@ app.post('/lobby/:lobbyID/update-lobby-status', (req, res) => {
 });
 
 app.get('/lobby/:lobbyID/check-uploads', async (req, res) => {
-    if(!(req.params['lobbyID'] in lobbies)) {
-        console.log('not a valid lobby');
-        return;
-    }
+
 
     var lobby = lobbies[req.params['lobbyID']];
 
@@ -237,10 +226,6 @@ app.get('/lobby/:lobbyID/check-uploads', async (req, res) => {
 app.post('/lobby/:lobbyID/swap', (req, res) => {
     // start swap if all players in lobby locked in
     // otherwise just update that player X is ready
-    if (!(req.params['lobbyID'] in lobbies)) {
-        res.status(204).send();
-        return;
-    }
 
     // update upload status to ready and 
     var lobby = lobbies[req.params['lobbyID']];
@@ -276,10 +261,6 @@ app.post('/lobby/:lobbyID/swap', (req, res) => {
 });
 
 app.get('/lobby/:lobbyID/check-swap', (req, res) => {
-    if(!(req.params['lobbyID'] in lobbies)) {
-        console.log('not a valid lobby');
-        return;
-    }
 
     var lobby = lobbies[req.params['lobbyID']];
 
@@ -297,11 +278,6 @@ app.get('/lobby/:lobbyID/check-swap', (req, res) => {
 
 app.post('/lobby/:lobbyID/download', (req, res) => {
     // authenticate and recieve save data from lobby
-    if(!(req.params['lobbyID'] in lobbies)) {
-        // flash error message or something idk
-        res.redirect('/connect');
-        return;
-    }
 
     const file = lobbies[req.params['lobbyID']]['uploads'][req.session.username]['data']['path'];
 
