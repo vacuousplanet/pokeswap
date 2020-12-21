@@ -119,11 +119,11 @@ upload_button.addEventListener('click', async () => {
                 }
             }
         ).then(res=>res.json()).then(res=>res['status']);
-        if(status_result != 'waiting'){
+        if(status_result != 'NONE'){
             break;
         }
     }
-    if (status_result === 'success'){
+    if (status_result === 'UPLOADED'){
         // lock out more uploads
         upload_button.className = "btn btn-success";
         upload_button.disabled = true;

@@ -3,6 +3,7 @@ import session from "express-session";
 import multer from "multer";
 
 import {multicheckswap} from "./src/checkswap.js";
+import {Lobby} from "./src/lobby.js";
 
 const upload = multer({dest: './public/data/uploads/'});
 
@@ -37,7 +38,7 @@ app.use('/lobby/:lobbyID', (req, res, next) => {
     var lobby = lobbies[req.params['lobbyID']];
 
     // check for user in lobby
-    if (!(lobby['players'].includes(req.session.username))) {
+    if (lobby.getPlayerState(req.session.username) === undefined) {
         res.redirect('/')
         return;
     }
@@ -85,26 +86,21 @@ app.post('/connect', (req, res) => {
     // create reference to lobby
     var lobby = lobbies[req.body.lobbyID];
 
-    // don't overfill lobby
-    if (lobby['lobby_size'] <= lobby['players'].length) {
+    // try adding player
+    const username = lobby.addPlayer(req.body.usernameConnect, 'lmao');
+    if (username === undefined) {
         console.log('lobby full!');
         res.status(204).send();
         return;
     }
 
-    // this is kinda bad tbh
-    while(lobby['players'].includes(req.body.usernameConnect)) {
-        req.body.usernameConnect += '0';
-    }
-
     req.session.lobby = req.body.lobbyID;
-    req.session.username = req.body.usernameConnect;
-
-    lobby['players'].push(req.body.usernameConnect);
+    req.session.username = username;
 
     res.redirect(`lobby/${req.body.lobbyID}`);
 });
 
+// TODO: actually flash errors to client here
 app.post('/create', (req, res) => {
     // disallow lobby creation for lobbied users
     if (req.session.lobby in lobbies) {
@@ -133,20 +129,13 @@ app.post('/create', (req, res) => {
     
     // TODO: generate password and pre-authenticate session
 
-    // might want to specify Lobby object ?
-    lobbies[new_code] = {
-        password: 'lmao',
-        game_version: req.body.gameVersion.replace(/\//g, ''),
-        lobby_size: parseInt(req.body.lobbySize),
-        players: [],
-        uploads: {},
-        downloads: false,
-    };
+    // Create new lobby
+    lobbies[new_code] = new Lobby('lmao', req.body.gameVersion.replace(/\//g, ''), parseInt(req.body.lobbySize));
 
     req.session.lobby = new_code;
     req.session.username = req.body.usernameCreate;
 
-    lobbies[new_code]['players'].push(req.body.usernameCreate);
+    lobbies[new_code].addPlayer(req.body.usernameCreate, 'lmao');
 
     res.redirect(`/lobby/${new_code}`);
 });
@@ -174,10 +163,7 @@ app.post('/lobby/:lobbyID/upload', upload.single('saveFile'), (req, res) => {
     // TODO: validate save file (idk exactly how deep this would go)
 
     // map player to uploaded file and add to lobby data
-    lobby['uploads'][req.session.username] = {
-        data: req.file,
-        status: 'success',
-    };
+    lobby.addUpload(req.session.username, req.file)
 
     // return 204 Code
     res.status(204).send();
@@ -185,17 +171,10 @@ app.post('/lobby/:lobbyID/upload', upload.single('saveFile'), (req, res) => {
 });
 
 app.get('/lobby/:lobbyID/check-upload-success', (req, res) => {
-
     var lobby = lobbies[req.params['lobbyID']];
-    if(lobby['uploads'][req.session.username] === undefined){
-        res.json({
-            status : 'waiting',
-        })
-    } else {
-        res.json({
-            status : lobby['uploads'][req.session.username]['status'],
-        })
-    }
+    res.json({
+        status: lobby.getPlayerUploadStatus(req.session.username)
+    });
 });
 
 app.post('/lobby/:lobbyID/update-lobby-status', (req, res) => {
@@ -209,10 +188,10 @@ app.post('/lobby/:lobbyID/update-lobby-status', (req, res) => {
 
 app.get('/lobby/:lobbyID/check-uploads', async (req, res) => {
 
-
     var lobby = lobbies[req.params['lobbyID']];
 
-    const remaining = lobby['lobby_size'] - Object.keys(lobby['uploads']).length;
+    const remaining = lobby.getUploadStatusRemaining("UPLOADED");
+
     if (remaining === 0) {
         req.session.lobbyState = "UPLOADS_FULL";
     }
@@ -230,29 +209,18 @@ app.post('/lobby/:lobbyID/swap', (req, res) => {
     // update upload status to ready and 
     var lobby = lobbies[req.params['lobbyID']];
 
-    lobby['uploads'][req.session.username]['status'] = 'ready';
+    lobby.readySwap(req.session.username);
 
-    var start_swap = true;
-    var users_not_ready = 0;
-    for (const username in lobby['uploads']) {
-        const user_ready = (lobby['uploads'][username]['status'] === 'ready');
-        users_not_ready += Number(!user_ready);
-        start_swap = start_swap && user_ready;
-    }
+    var users_not_ready = lobby.getUploadStatusRemaining("READY");
 
-    if (!start_swap) {
+    if (users_not_ready > 0) {
         // TODO: respond with a thing involving users not ready
         res.status(204).send();
         return;
     }
 
     // otherwise, do the swapping
-    multicheckswap(
-        Object.keys(lobby['uploads']).map( key => lobby['uploads'][key]['data']['path']),
-        lobby['game_version']
-    );
-
-    lobby['downloads'] = true;
+    multicheckswap(lobby.listFilepaths(), lobby.getGameVersion());
 
     res.status(204).send();
 
@@ -264,22 +232,18 @@ app.get('/lobby/:lobbyID/check-swap', (req, res) => {
 
     var lobby = lobbies[req.params['lobbyID']];
 
-    var users_not_ready = 0;
-    for (const username in lobby['uploads']) {
-        const user_ready = (lobby['uploads'][username]['status'] === 'ready');
-        users_not_ready += Number(!user_ready);
-    }
+    var users_not_ready = lobby.getUploadStatusRemaining("READY");
 
     res.json({
         remaining: users_not_ready,
-        downloads: lobby['downloads'],
+        downloads: (users_not_ready === 0),
     });
 });
 
 app.post('/lobby/:lobbyID/download', (req, res) => {
     // authenticate and recieve save data from lobby
 
-    const file = lobbies[req.params['lobbyID']]['uploads'][req.session.username]['data']['path'];
+    const file = lobbies[req.params['lobbyID']].getFilepath(req.session.username);
 
     // TODO: Check that file is actually ready!!!
     res.download(file);

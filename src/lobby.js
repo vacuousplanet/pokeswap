@@ -47,74 +47,89 @@ class LobbyBase {
 
     // TODO: Check if player can be added (statewise)
     addPlayer(username, password) {
-        this.players.push(username);
-        this.player_states[username] = "NEW";
-        this.uploads[username] = {
+        if (this.#players.length >= this.#lobby_size) {
+            return undefined;
+        }
+         // this is kinda bad tbh
+        while(this.#players.includes(username)) {
+            username += '0';
+        }
+        console.log(`Adding player ${username}`);
+        this.#players.push(username);
+        this.#player_states[username] = "NEW";
+        this.#uploads[username] = {
             data: undefined,
             status: "NONE",
         };
+        return username;
     }
 
     // TODO: Check if player can be removed (statewise)
     removePlayer(username) {
-        const player_index = this.players.indexOf(username);
+        const player_index = this.#players.indexOf(username);
         if (player_index > -1) {
-            this.players.splice(player_index, 1);
-            this.player_states[username] = undefined;
-            this.uploads[username] = undefined;
+            this.#players.splice(player_index, 1);
+            this.#player_states[username] = undefined;
+            this.#uploads[username] = undefined;
         }
     }
 
     addUpload(username, file) {
-        this.uploads[username] = {
+        this.#uploads[username] = {
             data: file,
             status: "UPLOADED",
         };
     }
 
     readySwap(username) {
-        this.uploads[username]['status'] = "READY";
+        this.#uploads[username]['status'] = "READY";
+    }
+
+    getPlayerUploadStatus(username) {
+        return this.#uploads[username]['status'];
     }
 
     getUploadStatusCount(status) {
         var count = 0;
-        Object.keys(this.uploads).forEach(username =>
-            count += (this.uploads[username]['status'] === status)
+        Object.keys(this.#uploads).forEach(username =>
+            count += (this.#uploads[username]['status'] === status)
         );
         return count;
     }
 
     getUploadStatusRemaining(status) {
-        return this.lobby_size - this.getUploadStatusCount(status);
+        return this.#lobby_size - this.getUploadStatusCount(status);
     }
 
     listFilepaths() {
-        return Object.keys(this.uploads).map(username =>
-            this.uploads[username]['data']['path']
+        return Object.keys(this.#uploads).map(username =>
+            this.#uploads[username]['data']['path']
         );
     }
 
     getFilepath(username) {
-        return this.uploads[username]['data']['path'];
+        return this.#uploads[username]['data']['path'];
+    }
+
+    getGameVersion() {
+        return this.#game_version;
     }
 
     // Use this to check for unauthorized lobby access
     getPlayerState(username) {
-        if (this.players.includes(username)) {
-            return this.player_states[username];
+        if (this.#players.includes(username)) {
+            return this.#player_states[username];
         } else {
             return undefined;
         }
     }
 
     getLobbyState() {
-        return this.lobby_state;
+        return this.#lobby_state;
     }
 
-}
+};
 
 // actual Lobby class
 // this handles stuff like allowable state calls
-export default class Lobby extends LobbyBase {
-
-}
+export class Lobby extends LobbyBase {};
