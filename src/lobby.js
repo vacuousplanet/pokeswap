@@ -18,6 +18,9 @@
 //  - READY
 //      Possible lobby states:
 //          (READYING, DOWNLOADS, RENEWING)
+//  - RENEWING
+//      Possible lobby states:
+//          (RENEWING)
 //
 // Client/player html data depends on BOTH player and lobby states
 
@@ -210,6 +213,23 @@ export class Lobby extends LobbyBase {
         }
 
         return;
+    }
+
+    getResolvedLobbyState(username){
+        switch (this._player_states[username]) {
+            case "NEW":
+                return "NEW";
+            case "UPLOADED":
+                if (this._lobby_state !== "READYING"){
+                    return this._lobby_state;
+                } else {
+                    return "UPLOADED";
+                }
+            case "READY":
+                // Logic will need to be added here when
+                // renewing state is added
+                return this._lobby_state;
+        }
     }
 
 };

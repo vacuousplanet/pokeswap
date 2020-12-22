@@ -145,10 +145,10 @@ app.get('/lobby/:lobbyID', (req, res) => {
     // TODO: use lobby object's lobbyState
     var lobby = lobbies[req.params['lobbyID']];
 
-    console.log(lobby.getLobbyState());
+    console.log(lobby.getResolvedLobbyState(req.session.username));
     res.render('lobby.ejs', {
         lobbyID: req.params['lobbyID'],
-        lobbyState: lobby.getLobbyState(),
+        lobbyState: lobby.getResolvedLobbyState(req.session.username),
     });
 });
 
