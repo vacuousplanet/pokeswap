@@ -40,8 +40,17 @@
                     <button type="submit" class="btn btn-primary w-100" id="swapButton">Swap Save Data</button>
                 <% } else if (lobbyState === "READYING") { %>
                     <button type="submit" class="btn btn-success w-100" id="swapButton" disabled>Readying Swap...</button>
-                <% } else if (lobbyState === "DOWNLOADS") { %> 
+                <% } else if (lobbyState === "DOWNLOADS" || lobbyState === "RENEWING") { %> 
                     <button type="submit" class="btn btn-primary w-100" id="swapButton">Download</button>
+                <% } %> 
+            </form>
+            <form action=<%= `/lobby/${lobbyID}/reset` %> id="resetButtonForm" method="post">
+                <% if (lobbyState === "DOWNLOADS") {%> 
+                <button type="submit" class="btn btn-primary w-100" id="resetButton">Reset Lobby</button>
+                <% } else if (lobbyState === "RENEWING") { %>
+                <button type="submit" class="btn btn-success w-100" id="resetButton" disabled>Waithing on other players...</button>
+                <% } else { %> 
+                <button type="submit" class="btn btn-muted w-100" id="resetButton" disabled hidden>You shouldn't see me...</button>
                 <% } %> 
             </form>
         </div>
@@ -61,6 +70,7 @@ var upload_button = document.getElementById('uploadButton');
 var swap_button = document.getElementById('swapButton');
 var file_upload = document.getElementById('saveFile');
 var swap_button_form = document.getElementById('swapButtonForm');
+var reset_button = document.getElementById('resetButton');
 
 // determine lobby url
 const lobby_url = "/lobby/" + "<%=lobbyID%>";
@@ -126,6 +136,37 @@ async function checkSwap() {
     swap_button.disabled = false;
     swap_button.className = "btn btn-primary w-100";
     swap_button.innerText = "Download";
+
+    reset_button.className = "btn btn-primary w-100";
+    reset_button.disabled = false;
+    reset_button.hidden = false;
+    reset_button.innerText = "Reset Lobby";
+}
+
+async function checkReset() {
+    while(true){
+        var status_result = await fetch(
+            lobby_url + "/check-reset", {
+                method: 'get',
+                headers: {
+                    'Accept': 'application/json',
+                }
+            }
+        ).then(res=>res.json());
+        if (status_result['remaining'] === undefined) {
+            console.log('is problem');
+        } else if (status_result['remaining'] === 0) {
+            break;
+        } else {
+            reset_button.innerText = `Waiting on ${status_result['remaining']} players...`;
+            reset_button.className = "btn btn-success w-100";
+            reset_button.disabled = true;
+        }
+        await new Promise(res => setTimeout(res, 3000));
+    }
+
+    // reload page
+    window.location.href = window.location.href;
 }
 
 // aesthetic disabling for upload button
@@ -184,6 +225,10 @@ swap_button.addEventListener('click', async () => {
 
 });
 
+reset_button.addEventListener('click', async () => {
+    await checkReset();
+})
+
 </script>
 
 <% if (lobbyState === "UPLOADING") { %>
@@ -198,6 +243,12 @@ swap_button.addEventListener('click', async () => {
         await checkSwap();
     })
     </script>
-<% } %> 
+<% } else if (lobbyState === "RENEWING") { %>
+    <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+        await checkReset();
+    })
+    </script>
+<% } %>
 
 <%- include('partials/footer'); %>

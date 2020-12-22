@@ -1,4 +1,6 @@
+import {unlink, unlinkSync} from "fs";
 
+// Lobby class information:
 
 // Lobby states:
 //  - NEW
@@ -18,7 +20,7 @@
 //  - READY
 //      Possible lobby states:
 //          (READYING, DOWNLOADS, RENEWING)
-//  - RENEWING
+//  - RENEW
 //      Possible lobby states:
 //          (RENEWING)
 //
@@ -114,6 +116,10 @@ class LobbyBase {
         this._uploads[username]['status'] = "READY";
     }
 
+    readyRenew(username) {
+        this._uploads[username]['status'] = "RENEW";
+    }
+
     getPlayerUploadStatus(username) {
         return this._uploads[username]['status'];
     }
@@ -142,6 +148,20 @@ class LobbyBase {
 
     getGameVersion() {
         return this._game_version;
+    }
+
+    resetUploads() {
+        Object.keys(this._uploads).forEach(username => {
+            unlinkSync(this._uploads[username]['data']['path'], (err) => {
+                if (err) throw err;
+            });
+            this._uploads[username] = {
+                data: undefined,
+                status: "NONE",
+            }
+            this._player_states[username] = "NEW";
+        });
+
     }
 
     // Use this to check for unauthorized lobby access
@@ -215,6 +235,41 @@ export class Lobby extends LobbyBase {
         return;
     }
 
+    readyRenew(username) {
+        // check player state
+        if (this._player_states[username] !== "READY") {
+            return;
+        }
+
+        // check lobby state
+        const allowable_states = ["DOWNLOADS", "RENEWING"];
+        if (!allowable_states.includes(this._lobby_state)) {
+            return;
+        }
+        // calls base functionality
+        super.readyRenew(username);
+
+        // progress player state
+        this._player_states[username] = "RENEW";
+
+        // progress lobby state
+        if (this._lobby_state === "DOWNLOADS"
+            || (this._lobby_state === "RENEWING" && this.getUploadStatusRemaining("RENEW") === 0)) {
+                this._progressLobbyState();
+        }
+
+        return;
+    }
+
+    getUploadStatusRemaining(status) {
+        // special case for renewed lobbies
+        if (status === "RENEW" && this._lobby_state !== "RENEWING") {
+            return 0;
+        } else {
+            return super.getUploadStatusRemaining(status);
+        }
+    }
+
     getResolvedLobbyState(username){
         switch (this._player_states[username]) {
             case "NEW":
@@ -226,8 +281,12 @@ export class Lobby extends LobbyBase {
                     return "UPLOADED";
                 }
             case "READY":
-                // Logic will need to be added here when
-                // renewing state is added
+                if (this._lobby_state !== "RENEWING"){
+                    return this._lobby_state;
+                } else {
+                    return "DOWNLOADS";
+                }
+            case "RENEW":
                 return this._lobby_state;
         }
     }

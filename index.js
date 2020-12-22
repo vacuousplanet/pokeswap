@@ -181,15 +181,6 @@ app.get('/lobby/:lobbyID/check-upload-success', (req, res) => {
     });
 });
 
-app.post('/lobby/:lobbyID/update-lobby-status', (req, res) => {
-
-    console.log(req.body.lobby_state);
-    req.session.lobbyState = req.body.lobby_state;
-
-    // everything's fine
-    res.status(204).send();
-});
-
 app.get('/lobby/:lobbyID/check-uploads', async (req, res) => {
 
     var lobby = lobbies[req.params['lobbyID']];
@@ -247,6 +238,7 @@ app.get('/lobby/:lobbyID/check-swap', (req, res) => {
 app.post('/lobby/:lobbyID/download', (req, res) => {
     // authenticate and recieve save data from lobby
 
+    // TODO: check player state!!!
     const file = lobbies[req.params['lobbyID']].getFilepath(req.session.username);
 
     // TODO: Check that file is actually ready!!!
@@ -254,6 +246,37 @@ app.post('/lobby/:lobbyID/download', (req, res) => {
 
 });
 
+app.post('/lobby/:lobbyID/reset', (req, res) => {
+    var lobby = lobbies[req.params['lobbyID']];
+
+    lobby.readyRenew(req.session.username);
+
+    var users_not_ready = lobby.getUploadStatusRemaining("RENEW");
+
+    if (users_not_ready > 0) {
+        res.status(204).send();
+        return;
+    }
+
+    // reset uploads (delete files etc)
+    lobby.resetUploads();
+
+    res.status(204).send();
+
+    return;
+});
+
+app.get('/lobby/:lobbyID/check-reset', (req, res) => {
+
+    var lobby = lobbies[req.params['lobbyID']];
+
+    var users_not_ready = lobby.getUploadStatusRemaining("RENEW");
+
+    res.json({
+        remaining: users_not_ready,
+    });
+
+});
 
 app.post('/logout', (req, res) => {
     req.session.lobby = undefined;
