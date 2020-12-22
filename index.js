@@ -278,10 +278,32 @@ app.get('/lobby/:lobbyID/check-reset', (req, res) => {
 
 });
 
-app.post('/logout', (req, res) => {
+app.post('/lobby/:lobbyID/logout', (req, res) => {
+
+    var lobby = lobbies[req.params['lobbyID']];
+
+    // TODO: Handle arbitrary state log outs in lobby class
+    const allowable_states = ["NEW", "UPLOADING"];
+    if (!allowable_states.includes(lobby.getLobbyState())) {
+        res.status(204).send();
+        return;
+    }
+
+    lobby.removePlayer(req.session.username);
+
+    console.log(lobbies);
+
+    console.log(lobby.getNumPlayers())
+    if (lobby.getNumPlayers() === 0) {
+        console.log('should delete lobby')
+        lobby = undefined;
+        delete lobbies[req.params['lobbyID']];
+    }
+
+    console.log(lobbies);
+
     req.session.lobby = undefined;
-    // TODO: lobby should check for players
-    //       if none, delete/queue-delete lobby
+    req.session.username = undefined;
 
     // TODO: delete other session parameters (username, etc)
     //       as well as any other user specific data (uploads)

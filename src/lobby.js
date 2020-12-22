@@ -100,9 +100,13 @@ class LobbyBase {
         const player_index = this._players.indexOf(username);
         if (player_index > -1) {
             this._players.splice(player_index, 1);
-            this._player_states[username] = undefined;
-            this._uploads[username] = undefined;
+            delete this._player_states[username];
+            delete this._uploads[username];
         }
+    }
+
+    getNumPlayers() {
+        return this._players.length;
     }
 
     addUpload(username, file) {

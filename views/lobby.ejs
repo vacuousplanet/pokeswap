@@ -57,9 +57,14 @@
     </div>
 </div>
 
+<!-- TODO: Always allow loging out; handle it on the server -->
 <div class="p3 mb-3">
-    <form action="/logout" method="POST">
-        <button class="btn btn-primary" type="submit">Logout</button>
+    <form action=<%=`/lobby/${lobbyID}/logout`%> method="POST">
+        <% if (lobbyState === "NEW") { %> 
+        <button class="btn btn-primary" type="submit" id="logoutButton">Logout</button>
+        <% } else { %> 
+        <button class="btn btn-primary" type="submit" disabled id="logoutButton">Cannot Logout...</button>
+        <% } %> 
     </form>
 </div>
 
@@ -71,6 +76,8 @@ var swap_button = document.getElementById('swapButton');
 var file_upload = document.getElementById('saveFile');
 var swap_button_form = document.getElementById('swapButtonForm');
 var reset_button = document.getElementById('resetButton');
+
+var logout_button = document.getElementById('logoutButton');
 
 // determine lobby url
 const lobby_url = "/lobby/" + "<%=lobbyID%>";
@@ -185,6 +192,8 @@ file_upload.addEventListener('change', async () => {
 upload_button.addEventListener('click', async () => {
     // TODO: could limit number of tries and set sleep time ?
     //upload_button.disabled = true;
+    logout_button.disabled = true;
+    logout_button.innerText = "Cannot Logout...";
     while(true){
         var status_result = await fetch(
             lobby_url + "/check-upload-success", {
