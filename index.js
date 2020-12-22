@@ -142,9 +142,13 @@ app.post('/create', (req, res) => {
 
 
 app.get('/lobby/:lobbyID', (req, res) => {
+    // TODO: use lobby object's lobbyState
+    var lobby = lobbies[req.params['lobbyID']];
+
+    console.log(lobby.getLobbyState());
     res.render('lobby.ejs', {
         lobbyID: req.params['lobbyID'],
-        lobbyState: req.session.lobbyState,
+        lobbyState: lobby.getLobbyState(),
     });
 });
 
@@ -163,7 +167,7 @@ app.post('/lobby/:lobbyID/upload', upload.single('saveFile'), (req, res) => {
     // TODO: validate save file (idk exactly how deep this would go)
 
     // map player to uploaded file and add to lobby data
-    lobby.addUpload(req.session.username, req.file)
+    lobby.addUpload(req.session.username, req.file);
 
     // return 204 Code
     res.status(204).send();
@@ -179,7 +183,7 @@ app.get('/lobby/:lobbyID/check-upload-success', (req, res) => {
 
 app.post('/lobby/:lobbyID/update-lobby-status', (req, res) => {
 
-    console.log(req.body.lobby_state)
+    console.log(req.body.lobby_state);
     req.session.lobbyState = req.body.lobby_state;
 
     // everything's fine

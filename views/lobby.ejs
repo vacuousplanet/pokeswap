@@ -15,24 +15,24 @@
         </div>
         <div class="col-sm">
             <form action=<%=`/lobby/${lobbyID}/upload`%> enctype="multipart/form-data" method="POST">
-                <% if (lobbyState === undefined) { %>
+                <% if (lobbyState === "NEW") { %>
                     <input type="file" name="saveFile" id="saveFile">
                 <% } else { %>
                     <input type="file" name="saveFile" id="saveFile" disabled>
                 <% } %>
 
-                <% if (lobbyState === undefined) { %>
+                <% if (lobbyState === "NEW") { %>
                     <button type="submit" class="btn btn-muted" id="uploadButton" disabled>Upload Save File</button>
-                <% } else if (lobbyState === "UPLOAD_SUCCESS" || lobbyState === "UPLOADS_FULL") { %>
+                <% } else if (lobbyState === "UPLOADING" || lobbyState === "UPLOADED") { %>
                     <button type="submit" class="btn btn-success" id="uploadButton" disabled>Upload Successful</button>
                 <% } %>
             </form>
             <form action=<%=`/lobby/${lobbyID}/swap`%> method="POST" id="swapButtonForm">
-                <% if (lobbyState === undefined) { %>
+                <% if (lobbyState === "NEW") { %>
                     <button type="submit" class="btn btn-muted w-100" id="swapButton" disabled>Please upload save file...</button>
-                <% } else if (lobbyState === "UPLOAD_SUCCESS") { %>
+                <% } else if (lobbyState === "UPLOADING") { %>
                     <button type="submit" class="btn btn-muted w-100" id="swapButton" disabled>Waiting on other players...</button>
-                <% } else if (lobbyState === "UPLOADS_FULL") { %>
+                <% } else if (lobbyState === "UPLOADED") { %>
                     <button type="submit" class="btn btn-primary w-100" id="swapButton">Swap Save Data</button>
                 <% } %>
             </form>
@@ -89,17 +89,6 @@ file_upload.addEventListener('change', async () => {
         upload_button.disabled = true;
         upload_button.className = "btn btn-muted";
 
-        // send state update to server
-        const result = await fetch(lobby_url + "/update-lobby-status", {
-            method: 'post',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                lobby_state: undefined,
-            })
-        });
-
     } else {
         upload_button.disabled = false;
         upload_button.className = "btn btn-primary";
@@ -132,17 +121,6 @@ upload_button.addEventListener('click', async () => {
         swap_button.innerText = "Waiting on other players...";
 
         file_upload.disabled = true;
-
-        // send state update to server
-        const result = await fetch(lobby_url + "/update-lobby-status", {
-            method: 'post',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                lobby_state: 'UPLOAD_SUCCESS',
-            })
-        });
 
         // check for other player upload statuses
         await checkUploads();
@@ -196,7 +174,7 @@ swap_button.addEventListener('click', async () => {
 
 </script>
 
-<% if (lobbyState === "UPLOAD_SUCCESS") { %>
+<% if (lobbyState === "UPLOADING") { %>
     <script>
     document.addEventListener("DOMContentLoaded", async () => {
         await checkUploads();
