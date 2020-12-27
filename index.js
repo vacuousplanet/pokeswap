@@ -2,6 +2,8 @@ import Express from "express";
 import session from "express-session";
 import multer from "multer";
 
+import dotenv from "dotenv";
+
 import {multicheckswap} from "./src/checkswap.js";
 import {Lobby} from "./src/lobby.js";
 
@@ -18,9 +20,12 @@ app.use(Express.urlencoded({ extended: false}));
 //app.use(upload.array());
 app.use(Express.static('public'));
 
-// TODO: dotenv secret phrase
+if (process.env.NODE_ENV !== 'production') {
+    dotenv.config();
+}
+
 app.use(session({
-    secret: 'secret phrase',
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
 }));
