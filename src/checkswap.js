@@ -112,17 +112,55 @@ export function multicheckswap(filenames, game_version) {
 
     // copy original save data
     var team_offset = team_offset_map[game_version];
+    var trainer_names = [];
+    var trainer_ids = [];
+    var team_sizes = [];
     console.log(team_offset)
-    var team_data = buffers.map((buffer, index) => 
-        Buffer.from(buffer.subarray(
+    var team_data = buffers.map((buffer, index) => {
+        var team_datum = Buffer.from(buffer.subarray(
             section_starts[index] + team_offset,
             section_starts[index] + team_offset + team_length
         ))
-    );
+        // get trainer names/ids from first pokemon in team
+        // (dangerous if in game pokemon are traded)
+        // TODO: Read from trainer info instead (section 0)
+        trainer_names.push(team_datum.slice(0x18, 0x1F));
+        trainer_ids.push(team_datum.slice(0x08, 0x0C));
+        team_sizes.push(team_datum.slice(0x00, 0x04).readUInt32LE(0));
+        return team_datum;
+    });
 
     // overwrite buffers with new team_data
     save_write_map.forEach( (write_to_idx, write_from_idx) => {
-        team_data[write_from_idx].copy(
+
+        var team_datum = Buffer.from(team_data[write_from_idx]);
+        // loop through team
+        for (let i = 0; i < team_sizes[write_from_idx]; i++) {
+            let personality = team_datum.slice(0x04 + 100*i, 0x08 + 100*i);
+            let original_enckey = (personality.readUInt32LE(0) ^ trainer_ids[write_from_idx].readUInt32LE(0)) >>> 0;
+
+            var unenc_pokemon_data = [];
+            // decrypt pokemon's data
+            for (let j = 0; j < 12; j++) {
+                unenc_pokemon_data.push(
+                    (team_datum.slice(0x24 + 4*j + 100*i, 0x28 + 4*j + 100*i).readUInt32LE(0) ^ original_enckey) >>> 0
+                );
+            }
+
+            // replace ot id and ot name
+            trainer_names[write_to_idx].copy(team_datum, 0x18 + 100*i);
+            trainer_ids[write_to_idx].copy(team_datum, 0x08 + 100*i);
+
+            // re-encrypt pokemon's data with new ot id
+            var new_enckey = (personality.readUInt32LE(0) ^ trainer_ids[write_to_idx].readUInt32LE(0));
+            for (let j = 0; j < 12; j++) {
+                console.log((unenc_pokemon_data[j] ^ new_enckey) >>> 0);
+                team_datum.writeUInt32LE((unenc_pokemon_data[j] ^ new_enckey) >>> 0, 0x24 + 4*j + 100*i);
+            }
+
+        }
+
+        team_datum.copy(
             buffers[write_to_idx],
             section_starts[write_to_idx] + team_offset
         );
