@@ -27,7 +27,7 @@ since we don't need to know if players are ready anymore
 */
 
 interface uploadStruct {
-    data: Buffer;
+    data: Uint8Array;
     status: string;
 }
 
@@ -43,16 +43,21 @@ class LobbyBase {
     _uploads: Map<string, uploadStruct>;
     _lobby_state: string;
     _player_states: Map<string, string>;
+    _votes: Map<string, boolean>;
+    _init_gym_status: number;
+    _expected_players: string[];
 
     _progressLobbyState: () => void;
 
-    constructor(password: string, game_version: string, lobby_size: number, lobby_code: string) {
+    constructor(password: string, game_version: string, lobby_size: number, lobby_code: string, gym_status: number) {
         this._password = password;
         this._game_version = game_version;
         this._lobby_size = lobby_size;
         this._lobby_code = lobby_code;
         this._players = [];
         this._uploads = new Map<string, uploadStruct>();
+        this._votes = new Map<string, boolean>();
+        this._init_gym_status = gym_status;
 
         this._lobby_state = "NEW";
         this._player_states = new Map<string, string>();
@@ -84,10 +89,21 @@ class LobbyBase {
         this._players.push(username);
         this._player_states.set(username, "NEW");
         this._uploads.set(username, {
-            data: undefined,
+            data: <Buffer>{},
             status: "NONE",
         });
         return username;
+    }
+
+    readyPlayer(username: string) {
+        // on player ready, set player state to ready
+        // when all players are ready, send signal to rooms to start emulators
+        this._player_states.set(username, "READY");
+        if (this.getPlayerStatusRemaining('READY') === 0) {
+            this._progressLobbyState();
+            io.in(this._lobby_code).emit('start-game', this._players, 'All players ready; starting emulation...');
+            this._expected_players = Array.from(this._players);
+        }
     }
 
     removePlayer(username: string) {
@@ -96,6 +112,40 @@ class LobbyBase {
             this._players.splice(player_index, 1);
             this._player_states.delete(username);
             this._uploads.delete(username);
+            if (--this._lobby_size > 1) {
+                io.in(this._lobby_code).emit('player-disconnect', username);
+            } else {
+                // force disconnect
+                io.in(this._lobby_code).emit('last-player', username);
+            }
+        }
+    }
+
+    addVote(username: string, vote: boolean): string {
+        if (this.getPlayerState(username)) {
+            this._votes.set(username, vote);
+            if (Array.from(this._votes.keys()).length === this._lobby_size) {
+                let count = 0;
+                this._votes.forEach(user_vote => {
+                    count += Number(user_vote);
+                })
+                if (count >= this._lobby_size / 2) {
+                    // vote to continue (update expected players)
+                    this._expected_players = Array.from(this._votes.keys());
+                    return 'Continuing session!';
+                } else {
+                    // vote to end session
+                    return 'Ending session...';
+                }
+            }
+            let count = 0;
+            this._players.forEach(username => {
+                count += Number(!this._votes.has(username));
+            });
+
+            return `Waiting on ${count} votes`;
+        } else {
+            return 'You are not logged into this lobby...';
         }
     }
 
@@ -106,24 +156,40 @@ class LobbyBase {
     // old version had index handle readying/uploads
     // now we can autodectect ready so this can/should be moved into here
     // or into the wrapper class
-    addUpload(username: string, team_data: Buffer) {
+    addUpload(username: string, team_data: Uint8Array) {
         this._uploads.set(username, {
             data: team_data,
             status: "UPLOADED",
         });
+        console.log(this._uploads);
         if (this.getUploadStatusRemaining("UPLOADED") === 0) {
             
-            multicheckswap(
+
+            // TODO: handle case of undefined data
+            // technically, it can't happen, but make that obvious compilerwise
+            let new_data = multicheckswap(
                 Array.from(this._uploads.values()).map(upload => upload.data),
                 this._game_version
             );
 
-            io.to(this._lobby_code).emit('newTeamsReady');
+            Array.from(this._uploads.values()).forEach((upload, i) => {
+                upload.data = new_data[i];
+            });
+
+            io.to(this._lobby_code).emit('new-teams-ready');
         }
     }
 
+    getPlayerStatusRemaining(status: string): number {
+        var count = 0;
+        this._player_states.forEach(state => {
+            count += Number(status === state)
+        })
+        return this._lobby_size - count;
+    }
+
     getPlayerUploadStatus(username: string) {
-        return this._uploads.get(username).status;
+        return this._uploads.get(username)?.status;
     }
 
     getUploadStatusCount(status: string) {
@@ -139,17 +205,25 @@ class LobbyBase {
     }
 
     getTeamData(username: string) {
-        return this._uploads.get(username).data
+        return this._uploads.get(username)?.data
     }
 
     getGameVersion() {
         return this._game_version;
     }
 
+    getInitGymStatus() {
+        return this._init_gym_status;
+    }
+
+    getExpectedPlayers() {
+        return this._expected_players;
+    }
+
     resetUploads() {
         this._uploads.forEach((upload, username) => {
             upload = {
-                data: undefined,
+                data: <Uint8Array>{},
                 status: "NONE",
             }
             this._player_states.set(username, "NEW");
@@ -174,7 +248,10 @@ class LobbyBase {
 // actual Lobby class
 // this handles stuff like allowable state calls
 export class Lobby extends LobbyBase {
+    /*
     addUpload(username: string, team_data: Buffer) {
+        console.log('upload called...')
+
         // check player state
         if (this._player_states.get(username) !== "NEW") {
             return;
@@ -205,4 +282,5 @@ export class Lobby extends LobbyBase {
 
         return;
     }
+    */
 };

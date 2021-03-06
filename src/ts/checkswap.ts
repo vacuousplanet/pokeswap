@@ -1,5 +1,7 @@
 // main export
-export function multicheckswap(buffers: Buffer[], game_version: string): void {
+export function multicheckswap(buffers: Uint8Array[], game_version: string): Uint8Array[] {
+    
+    var outs = Array.from(buffers);
 
     // start with uniform random shuffle
     var rand_order = buffers.map( (_, i) => i);
@@ -27,9 +29,13 @@ export function multicheckswap(buffers: Buffer[], game_version: string): void {
         // TODO: Also, check team size <6 (also catches new save file oopsies)
         trainer_names.push(team_datum.slice(0x18, 0x1F));
         trainer_ids.push(team_datum.slice(0x08, 0x0C));
-        team_sizes.push(team_datum.slice(0x00, 0x04).readUInt32LE(0));
+        team_sizes.push(team_datum.slice(0x01, 0x02).readUInt8(0));
         return team_datum;
     });
+
+    console.log(trainer_names)
+    console.log(trainer_ids)
+    console.log(team_sizes)
 
     // overwrite buffers with new team_data
     save_write_map.forEach( (write_to_idx, write_from_idx) => {
@@ -40,7 +46,7 @@ export function multicheckswap(buffers: Buffer[], game_version: string): void {
             let personality = team_datum.slice(0x04 + 100*i, 0x08 + 100*i);
             let original_enckey = (personality.readUInt32LE(0) ^ trainer_ids[write_from_idx].readUInt32LE(0)) >>> 0;
 
-            var unenc_pokemon_data = [];
+            var unenc_pokemon_data: number[] = [];
             // decrypt pokemon's data
             for (let j = 0; j < 12; j++) {
                 unenc_pokemon_data.push(
@@ -55,18 +61,16 @@ export function multicheckswap(buffers: Buffer[], game_version: string): void {
             // re-encrypt pokemon's data with new ot id
             var new_enckey = (personality.readUInt32LE(0) ^ trainer_ids[write_to_idx].readUInt32LE(0));
             for (let j = 0; j < 12; j++) {
-                console.log((unenc_pokemon_data[j] ^ new_enckey) >>> 0);
+                //console.log((unenc_pokemon_data[j] ^ new_enckey) >>> 0);
                 team_datum.writeUInt32LE((unenc_pokemon_data[j] ^ new_enckey) >>> 0, 0x24 + 4*j + 100*i);
             }
 
         }
 
-        team_datum.copy(
-            buffers[write_to_idx]
-        );
+        outs[write_to_idx] = Uint8Array.from(team_datum)
     });
 
-    return;
+    return outs;
 }
 
 // 
