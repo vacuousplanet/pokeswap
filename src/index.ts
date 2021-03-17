@@ -50,31 +50,8 @@ const settings_schema: JSONSchemaType<LobbySettings> = {
 
 const validate_settings = ajv.compile(settings_schema);
 
-// lobby and user validation middleware
-/*
-io.use((socket: userSocket, next) => {
-    // check for lobby existance
-    console.log(`middleware hit: ${socket.}`)
-    if (socket.lobby_code !== undefined && !lobbies.has(socket.lobby_code)) {
-        console.log('no lobby there')
-        next(new Error(`No lobby with code ${socket.lobby_code} could be found`));
-        return;
-    }
-    // check for user in lobby
-    if (lobbies.get(socket.lobby_code).getPlayerState(socket.username) === undefined) {
-        console.log('user not in lobby')
-        next(new Error(`Not authorized to access ${socket.lobby_code}`));
-        return;
-    }
-
-    // continue routing otherwise
-    next();
-});
-*/
-
 io.on('connection', (socket: userSocket) => {
 
-    //console.log('yo waddup')
 
     // create lobby signal
     socket.on('create', (lobby_settings: LobbySettings, callback: (a: LobbySettings, status: string) => void) => {
@@ -175,8 +152,6 @@ io.on('connection', (socket: userSocket) => {
         callback(lobby_settings, 'ok');
 
         io.in(socket.lobby_code).emit('player-joined', `${socket.username} has joined the lobby...`);
-
-        //socket.emit('lobbyJoined', lobby_settings.lobby_code, revised_username);
     });
 
     socket.on('resume', (lobby_settings: LobbySettings, callback: (a: LobbySettings, status: string) => void) => {
@@ -190,27 +165,18 @@ io.on('connection', (socket: userSocket) => {
         if (!lobbies.has(lobby_settings.lobby_code)) {
             // create lobby
 
-            // generate random 6 digit code and verify that it's new
-            var new_code = Math.random().toString(36).substr(2, 6);
-            while(new_code in lobbies){
-                new_code = Math.random().toString(36).substr(2, 6);
-            }
-
             // create lobby @ new code
             lobbies.set(
-                new_code,
-                new Lobby('lmao', lobby_settings.gamepath, lobby_settings.lobby_size, new_code, lobby_settings.gym_status)
+                lobby_settings.lobby_code,
+                new Lobby('lmao', lobby_settings.gamepath, lobby_settings.lobby_size, lobby_settings.lobby_code, lobby_settings.gym_status)
             );
 
-            const lobby = lobbies.get(new_code);
+            const lobby = lobbies.get(lobby_settings.lobby_code);
 
             if (!lobby) {
                 callback(lobby_settings, 'Unable to create lobby with provided settings...');
                 return;
             }
-
-            lobby_settings.lobby_code = new_code;
-            lobby_settings.lobby_password = 'lmao';
 
             // try adding player to lobby
             const revised_username = lobby.addPlayer(lobby_settings.username, 'lmao');
@@ -225,10 +191,10 @@ io.on('connection', (socket: userSocket) => {
             }
 
             socket.username = revised_username;
-            socket.lobby_code = new_code;
+            socket.lobby_code = lobby_settings.lobby_code;
 
             // create room for lobby
-            socket.join(new_code);
+            socket.join(lobby_settings.lobby_code);
 
             // send username back to client
             callback(lobby_settings, 'ok');
@@ -262,8 +228,6 @@ io.on('connection', (socket: userSocket) => {
     socket.on('ready', (callback: (status: string) => void) => {
         
 
-        console.log('ready signal')
-
         if (!socket.lobby_code || !socket.username) {
             callback('Socket is not registered');
             return;
@@ -282,10 +246,6 @@ io.on('connection', (socket: userSocket) => {
         }
 
         lobby.readyPlayer(socket.username);
-
-        //console.log(`hey there ${socket.username} in: ${socket.lobby_code}`);
-        //console.log(socket.rooms);
-        // tell lobby object the player is ready freddy
 
         io.in(socket.lobby_code).emit('player-ready', `${socket.username} is ready...`)
     });
@@ -309,8 +269,6 @@ io.on('connection', (socket: userSocket) => {
             return;
         }
 
-        console.log(`${socket.username} beat gym`)
-
         // tell erbody that the gym was beaten
         socket.to(socket.lobby_code).emit('beat-gym', gym_state, `${socket.username} has beaten a new gym!`);
 
@@ -331,9 +289,6 @@ io.on('connection', (socket: userSocket) => {
             callback(`Could not find lobby ${socket.lobby_code}`);
             return;
         }
-
-        console.log(`${socket.username} uploaded team:`)
-        console.log(team_data);
 
         lobby.addUpload(socket.username, team_data);
 
@@ -385,7 +340,6 @@ io.on('connection', (socket: userSocket) => {
         return;
     });
 
-    // TODO: send lobby state?
     socket.on('disconnect', () => {
         if (!socket.lobby_code || !socket.username) {
             return;
@@ -399,10 +353,8 @@ io.on('connection', (socket: userSocket) => {
 
 
         if (lobby.getPlayerState(socket.username)) {
-            console.log(`removing player ${socket.username}`);
             lobby.removePlayer(socket.username);
             if (lobby.getNumPlayers() < 2) {
-                console.log(`deleting lobby ${socket.lobby_code}`);
                 lobbies.delete(socket.lobby_code);
             }
         }
@@ -412,40 +364,6 @@ io.on('connection', (socket: userSocket) => {
     });
 
 });
-
-/*  OLD LOGOUT CODE
-app.post('/lobby/:lobbyID/logout', (req, res) => {
-
-    var lobby = lobbies[req.params['lobbyID']];
-
-    // TODO: Handle arbitrary state log outs in lobby class
-    const allowable_states = ["NEW", "UPLOADING"];
-    if (!allowable_states.includes(lobby.getLobbyState())) {
-        res.status(204).send();
-        return;
-    }
-
-    lobby.removePlayer(req.session.username);
-
-    console.log(lobbies);
-
-    console.log(lobby.getNumPlayers())
-    if (lobby.getNumPlayers() === 0) {
-        console.log('should delete lobby')
-        lobby = undefined;
-        delete lobbies[req.params['lobbyID']];
-    }
-
-    console.log(lobbies);
-
-    req.session.lobby = undefined;
-    req.session.username = undefined;
-
-    // TODO: delete other session parameters (username, etc)
-    //       as well as any other user specific data (uploads)
-    res.redirect('/');
-});
-*/
 
 const PORT = Number(process.env.PORT) || 3000;
 

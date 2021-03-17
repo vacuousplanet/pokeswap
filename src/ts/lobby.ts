@@ -101,6 +101,7 @@ class LobbyBase {
         this._player_states.set(username, "READY");
         if (this.getPlayerStatusRemaining('READY') === 0) {
             this._progressLobbyState();
+            console.log(this._players);
             io.in(this._lobby_code).emit('start-game', this._players, 'All players ready; starting emulation...');
             this._expected_players = Array.from(this._players);
         }
