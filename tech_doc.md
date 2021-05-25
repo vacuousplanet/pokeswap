@@ -65,7 +65,7 @@ A0 70          strb r0, [r4, #2]    --> Stores the bottom byte from r0 in addres
 
 If this still feels complicated, thinking about registers in terms of framiliar higher-level programming concepts can be helpful.
 
-For instance, every register is simply be a 32-bit integer variable (`uint_32` or a `long` in C), and the stack is simply a single global stack which holds these `uint_32` (maybe a `std::vector<long>` in C++ (I know there's a proper stack standard template container, but vectors are more taught so stfu (yes there's another nested parenthesis))).
+For instance, every register is simply a 32-bit integer variable (`uint_32` or a `long` in C), and the stack is simply a single global stack which holds these `uint_32` (maybe a `std::vector<long>` in C++ (I know there's a proper stack standard template container, but vectors are taught more so stfu (yes there's another nested parenthesis))).
 
 So, in a language like Python, glossing over a lot of how CPU registers work (don't worry about `lr`), this code above basically reads:
 
@@ -81,11 +81,11 @@ def subroutine()
     stack.append(r4)
     r4 = r0
 
-    do_0x08098e0c()
+    _0x08098e0c()
 
     r0 = r0 % (2**16)
 
-    do_0x0809d790()
+    _0x0809d790()
 
     memory[r4 + 2] = r0 % 256
 
@@ -96,3 +96,60 @@ def subroutine()
 ```
 
 Hopefully that's helpful in making stuff less scary.  If not, my b.
+
+<div id="dma"/>
+
+## Emerald DMA
+
+There is a nifty hardware feature in the GBA's CPU called 'DMA' which stands for Direct Memory Access, which can basically be used to move a bunch of memory around really really quickly.  That has a lot of really cool potential.  But Game Freak decided to be lame and only use it to make things harder to decomp 🙄.
+
+When I refer to "Emerald's DMA", I'm refering to the fact that a large portion of the game's active memory has its location randomized every few 1000 or so frames, which means hunting for static memory addresses is often a no no.  What this means in terms of looking for variables/flags that indicate game progression, is that you can't look for memory addresses that change pre/post some sort of interaction/event; you have to look at what functions are called, and then translate the function in order to figure out where Emerald's DMA moved the data.
+
+Luckily, I've already done the painful work of figuring out that the memory location (where Emerald's DMA moves the data structure containing all of the flags/variables) is stored at `0x03005D8C`.  That painful work was done by meticulously analyzing the branches of the subroutine in the [software](#software) section, which is in fact, the 'check flag' function, which checks whether or not a certain flag is set to true or false.
+
+In the future, I'll write some documentation for the flags/variables/data-structure which gets passed around by the DMA.
+
+**TL;DR ALWAYS LOOK IN `0x03005D8C`**
+
+<div id="flags">
+
+## Gym Badge Flags
+
+Once you've accounted for Emerald's DMA, you can do the more traditional pre/post comparison of memory addresses before/after an event, or you can trigger the 'checkflag' function in game for the desired flag, and simple check the memory addresses.
+
+For the gym badges, you can find the flags the latter way by checking the little gym statues at the beginning of the corresponding gym.  The dialog flashed by these statues depend on the returned value of the 'checkflag' function, which means you just need to set a breakpoint at that address and _interpret_ (a hair more involved than just reading) the values in the registers.
+
+By reading further into the 'checkflag' function, you can find that all flags are offset from the DMA shifted address by `0x1270`.  Performing the statue technique outlined above yeilds a further memory offset of `0x10C` for the first gym badges.
+
+Lucikly, all eight gym badges are sequential in memory, which means that we could read in the full 'gym state' as an 8-bit integer yea?!  Not quite (god this is getting into watch for rolling rocks territory).
+
+The flags are stored as 1-bit values, and because you can only do 'byte-aligned' reads from memory, reading a non-aligned 8-bit integer requires reading in a 16-bit integer and then doing some masking + clipping.  In the case of the gym badges, they're stored as:
+```
+x8765432 1xxxxxxx
+```
+so 'anding' with the mask:
+```
+01111111 10000000
+```
+will trim unimportant data, and shiting by 7 will yield the full gym state:
+```
+87654321
+```
+
+<div id="team"/>
+
+## Live Team Data
+
+Surprisingly (at least surprising to me), the live team data is not stored within the DMA'd data structure, but is in fact a static memory address, at `0x020244E8`.  Nothing too much to say about this, except in the case of swaps 'mid-battle'.
+
+A lot of data pertaining to the starting pokemon are loaded into 'active memory' **before** the battle starts.  This means that when a swap occurs, and only the 'active party' is swapped, there are still fragments of the previous pokemon's data still in the battle scene, which can lead to instances where pokemon can use moves they'd never be able to typically use.  This isn't game breaking and fades after an in-battle team switch or a battle end, but could be avoided by investigating where battle related data goes.
+
+<div id="mondata"/>
+
+## Pokemon Data Structure
+
+The majority of relevant information on Gen III pokemon data structures can be found [here](https://bulbapedia.bulbagarden.net/wiki/Pok%C3%A9mon_data_structure_(Generation_III)).
+
+One thing to note with regards to swapping pokemon, is obidience, original trainer IDs, and data-substructure encryption.  Within the mechanics of Emerald, when a pokemon is swapped/traded, with no direct modifications, it will not obey the new trainer if it's above a certain level (said level depends on # gym badges owned).
+
+The obvious thing to do then is swap the pokemon's original trainer IDs as well.  However, the data-substructure for the pokemon is encrypted using the original trainer ID as a key. What this means, is that in order to swap a pokemons original trainer id, the data-substructure must be decrypted using the original ID, and then re-encrypted with the new ID, before the IDs are swapped.  If this doesn't happend, and the ID's are swapped anyways, the pokemon will register as a bad egg.
