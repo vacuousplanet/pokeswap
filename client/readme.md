@@ -1,17 +1,3 @@
-<<<<<<< HEAD
-# Pokeswap (alpha)
-
-Simple webpage for coordinating saved team data swapping for 3rd gen pokemon GBA games
-
-## Supported game saves
-
-Pokemon Ruby/Saphire/Emerald
-Pokemon FireRead/LeafGreen
-
-## Notice
-
-This is in alpha right now.  This might evolve into a simple API sending requests to a client application.
-=======
 # PokeSwap
 
 ![](resources/pokeswap_icon.png)
@@ -39,4 +25,3 @@ A video going over this will be available soon...
  - Add the Pokemon Emerald Rom as well as the Bizhawk emulator to the paths
  - Edit the server URL to that of an active PokeSwap server
  - Start playing PokeSwap!
->>>>>>> client/master

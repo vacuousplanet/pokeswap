@@ -1,24 +1,4 @@
 {
-<<<<<<< HEAD
-	"compilerOptions": {
-		"target": "es6",
-		"module": "commonjs",
-		"strictNullChecks": true,
-		"sourceMap": true,
-		"outDir": "dist",
-		"baseUrl": "./",
-		"esModuleInterop": true,
-		"paths": {
-			"*": [
-				"node_modules/*"
-			]
-		}
-	},
-	"include": [
-		"src/**/*"
-	]
-}
-=======
   "compilerOptions": {
     /* Visit https://aka.ms/tsconfig.json to read more about this file */
 
@@ -92,4 +72,3 @@
     "forceConsistentCasingInFileNames": true  /* Disallow inconsistently-cased references to the same file. */
   }
 }
->>>>>>> client/master
