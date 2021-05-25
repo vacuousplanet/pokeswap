@@ -1,3 +1,14 @@
+<<<<<<< HEAD
 node_modules/
 .env
 dist/
+=======
+dist/
+node_modules/
+captains_log.md
+build/
+Output/
+test_util/
+*-win32-x64/
+*.iss
+>>>>>>> client/master

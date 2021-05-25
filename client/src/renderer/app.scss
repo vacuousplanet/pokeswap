@@ -1,0 +1,117 @@
+// colors
+$background-color: #232731;
+$surface-color: #333741;
+$surface-color-hover: #434751;
+$primary-color: #8888ee;
+$primary-color-hover: #bbbbff;
+$secondary-color: #bb77cc;
+$on-background: #FFFFFF;
+$on-surface: #cccccc;
+$on-surface-hover-color: #FFFFFF;
+$on-primary: #000000;
+
+// font def
+$font-stack: Helvetica, sans-serif;
+
+body {
+    background-color: $background-color;
+    color: $on-background;
+    height: 100%;
+    margin: 0;
+    width: 100%;
+    font: 100% $font-stack;
+}
+
+%button-base {
+    background-color: $primary-color;
+    color: $on-primary;
+    border: 1px solid rgba($on-background, 0);
+    border-radius: 5px;
+    text-align: center;
+    font-size: 16px;
+    transition: all 0.5s ease;
+    padding: 4px 12px;
+
+    &:hover:enabled {
+        background-color: $primary-color-hover;
+    }
+
+    &:focus:enabled {
+        outline: none;
+        border: 1px solid $on-background;
+        background-color: $primary-color-hover;
+    }
+
+    &:disabled {
+        background-color: $surface-color;
+        color: $on-surface;
+    }
+
+}
+
+%surface-button-base {
+    @extend %button-base;
+    background-color: $surface-color;
+    color: $on-surface;
+    border: 1px solid $on-surface;
+
+    &:hover:enabled {
+        background-color: $surface-color;
+        color: $primary-color;
+        border-color: $primary-color;
+    }
+
+    &:focus:enabled {
+        background-color: $surface-color-hover;
+        color: $primary-color-hover;
+        border-color: $primary-color-hover;
+    }
+}
+
+%menu-button-base {
+    background-color: $surface-color;
+    color: $on-surface;
+    border: 1px solid rgba($on-background, 0);
+    
+    &:hover:enabled {
+        color: $on-background;
+        background-color: $surface-color;
+        border: 1px solid rgba($on-background, 0);
+    }
+
+    &:focus:enabled {
+        color: $on-background;
+        border-color: $on-background;
+        background-color: $surface-color;
+    }
+}
+
+button {
+    @extend %button-base;
+}
+
+button.square {
+    display: flex;
+    justify-content: space-around;
+    font-size: 15px;
+    height: 30px;
+    width: 30px;
+}
+
+div.titlebar {
+    background-color: $surface-color;
+    height: 30px;
+    width: 100%;
+    margin: 0;
+    min-height: 100%;
+    font-size: 18px;
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-start;
+    -webkit-app-region: drag;
+
+    button {
+        @extend %menu-button-base;
+        -webkit-app-region: no-drag;
+    }
+}
