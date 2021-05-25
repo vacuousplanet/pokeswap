@@ -1,0 +1,68 @@
+@use '../app';
+
+$max-sidebar-size: 250px;
+
+%sidebar-base {
+    height: 100%;
+    position: fixed;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    background-color: app.$surface-color;
+    color: app.$on-surface;
+    overflow-x: hidden;
+    transition: 0.5s;
+    padding-top: 60px;
+
+    a {
+        color: app.$on-surface;
+        display: block;
+        padding: 8px 8px 8px 32px;
+        text-decoration: none;
+        overflow: hidden;
+        white-space: nowrap;
+        transition: color 0.3s;
+
+        &:hover {
+            color: app.$on-surface-hover-color;
+        }
+    }
+
+}
+
+.open {
+    @extend %sidebar-base;
+    width: $max-sidebar-size;
+}
+
+.closed {
+    @extend %sidebar-base;
+    width: 0;
+}
+
+%main-base {
+    transition: margin-left .5s;
+    padding: 16px;
+}
+
+.full {
+    @extend %main-base;
+    margin-left: 0;
+}
+
+.partial {
+    @extend %main-base;
+    margin-left: $max-sidebar-size;
+}
+
+.active {
+    @extend %surface-button-base;
+    margin-top: 8px;
+    margin-left: $max-sidebar-size + 16px;
+}
+
+.inactive {
+    @extend %surface-button-base;
+    margin-top: 8px;
+    margin-left: 16px;
+}
