@@ -12,10 +12,10 @@ Currently, only Pokemon Emerald is supported...
  - A ROM of Pokemon Emerald
  - A server running a pokeswap-server instance (will post one once this is out of beta)
  
-There are serveral tutorials available which go over how to
+There are several tutorials available which go over how to
 dump ROMs from legally purchased physical gba cartridges.
 
- ## Installation and Setup
+## Installation and Setup
 
 A video going over this will be available soon...
 
