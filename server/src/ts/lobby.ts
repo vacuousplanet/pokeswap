@@ -81,8 +81,8 @@ class LobbyBase {
         if (this._players.length >= this._lobby_size) {
             return undefined;
         }
-         // this is kinda bad tbh
-        while(this._players.includes(username)) {
+        // this is kinda bad tbh
+        while (this._players.includes(username)) {
             username += '0';
         }
         console.log(`Adding player ${username}`);
@@ -143,7 +143,6 @@ class LobbyBase {
             this._players.forEach(username => {
                 count += Number(!this._votes.has(username));
             });
-
             return `Waiting on ${count} votes`;
         } else {
             return 'You are not logged into this lobby...';
@@ -164,8 +163,6 @@ class LobbyBase {
         });
         console.log(this._uploads);
         if (this.getUploadStatusRemaining("UPLOADED") === 0) {
-            
-
             // TODO: handle case of undefined data
             // technically, it can't happen, but make that obvious compilerwise
             let new_data = multicheckswap(
