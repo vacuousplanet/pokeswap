@@ -26,6 +26,114 @@ since we don't need to know if players are ready anymore
 
 */
 
+interface LobbySettings {
+    username: string;
+    gamepath: string;
+    lobby_size: number;
+    lobby_code: string;
+    lobby_password: string;
+    gym_status: number;
+}
+
+interface Player {
+    upload: Uint8Array | undefined;
+    state: string;
+}
+
+interface LobbyType {
+    password: string;
+    game_version: string;
+    size: number;
+    players: Map<string, Player>;
+    gym_status: number;
+    state: string;
+}
+
+// Player and Lobby state updater-function generation
+interface StateObj {
+    state: string;
+}
+const objectStateUpdater = function <T extends StateObj>() {
+    return (obj: T | undefined, state: string) => {
+        if (obj?.state) {
+            obj.state = state
+        }
+    }
+}
+const updatePlayerState = objectStateUpdater<Player>();
+const updateLobbyState = objectStateUpdater<LobbyType>();
+
+const createLobby = function (lobbies: Map<string, LobbyType>, lobby_settings: LobbySettings) {
+    if(!lobbies.has(lobby_settings.lobby_code)) {
+        let new_code = Math.random().toString(36).substr(2, 6);
+        while (new_code in lobbies) {
+            new_code = Math.random().toString(36).substr(2, 6);
+        }
+
+        lobbies.set(new_code, {
+            password: lobby_settings.lobby_password,
+            game_version: lobby_settings.gamepath,
+            size: lobby_settings.lobby_size,
+            players: new Map<string, Player>(),
+            gym_status: lobby_settings.gym_status,
+            state: "NEW",
+        });
+
+        lobby_settings.lobby_code = new_code;
+    }
+
+    return lobbies.has(lobby_settings.lobby_code);
+}
+
+const getPlayerNames = function (lobbies: Map<string, LobbyType>, lobby_code: string) {
+    return lobbies.get(lobby_code)?.players.keys();
+}
+
+const addPlayer = function (lobbies: Map<string, LobbyType>, lobby_settings: LobbySettings) {
+    if (lobbies.get(lobby_settings.lobby_code)?.players.has(lobby_settings.username) === false) {
+        lobbies.get(lobby_settings.lobby_code)?.players.set(lobby_settings.username, {
+            upload: undefined,
+            state: "NEW",
+        });
+        lobby_settings.gym_status = lobbies.get(lobby_settings.lobby_code)?.gym_status || lobby_settings.gym_status;
+    }
+
+    return lobbies.get(lobby_settings.lobby_code)?.players.has(lobby_settings.username);
+}
+
+const readyPlayer = function (lobbies: Map<string, LobbyType>, lobby_code: string, username: string) {
+    if (lobbies.get(lobby_code)?.players.has(username)) {
+        if (lobbies.get(lobby_code)?.state == "NEW") {
+            updatePlayerState(lobbies.get(lobby_code)?.players.get(username), "READY");
+        }
+    }
+}
+
+const checkAllReady = function (lobbies: Map<string, LobbyType>, lobby_code: string) {
+    let all_ready = true;
+    if (lobbies.has(lobby_code)) {
+        lobbies.get(lobby_code)?.players.forEach(v => {
+            all_ready &&= (v.state === "READY");
+        });
+    }
+
+    return all_ready && lobbies.has(lobby_code);
+}
+
+const startLobby = function (lobbies: Map<string, LobbyType>, lobby_code: string) {
+    updateLobbyState(lobbies.get(lobby_code), "ACTIVE");
+}
+
+export const lobby_funcs = {
+    createLobby,
+    getPlayerNames,
+    addPlayer,
+    readyPlayer,
+    checkAllReady,
+    startLobby,
+}
+
+
 interface uploadStruct {
     data: Uint8Array;
     status: string;
