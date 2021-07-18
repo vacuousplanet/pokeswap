@@ -2,7 +2,7 @@ import Express from "express";
 import dotenv from "dotenv";
 import socketIO from 'socket.io';
 import Ajv, { JSONSchemaType, DefinedError } from 'ajv';
-import { app, server, io, lobby_funcs, Lobby } from "./ts/lobby";
+import { app, server, io, LobbyUtils } from "./ts/lobby";
 import { signals } from "../../shared/signals";
 
 const ajv = new Ajv();
@@ -46,6 +46,7 @@ interface LobbyType {
     game_version: string;
     size: number;
     players: Map<string, Player>;
+    derangement: Map<string, string>;
     gym_status: number;
     state: string;
 }
@@ -86,12 +87,12 @@ io.on('connection', (socket: userSocket) => {
         }
 
         // create lobby
-        if (!lobby_funcs.createLobby(lobbies, lobby_settings)) {
+        if (!LobbyUtils.createLobby(lobbies, lobby_settings)) {
             callback(lobby_settings, 'Unable to create lobby with provided settings...');
             return;
         }
 
-        if (!lobby_funcs.addPlayer(lobbies, lobby_settings)) {
+        if (!LobbyUtils.addPlayer(lobbies, lobby_settings)) {
             callback(lobby_settings,
                 'Unable to add player to new lobby.\n\n' +
                 'This is likely a bug on our end, so please report this on the ' +
@@ -129,7 +130,7 @@ io.on('connection', (socket: userSocket) => {
 
         // TODO: add more depth to error signalling
         // add player
-        if (!lobby_funcs.addPlayer(lobbies, lobby_settings)) {
+        if (!LobbyUtils.addPlayer(lobbies, lobby_settings)) {
             callback(lobby_settings, 'Unable to join lobby...');
             return;
         }
@@ -155,13 +156,13 @@ io.on('connection', (socket: userSocket) => {
             return;
         }
 
-        lobby_funcs.readyPlayer(lobbies, socket.lobby_code, socket.username);
+        LobbyUtils.readyPlayer(lobbies, socket.lobby_code, socket.username);
         io.in(socket.lobby_code).emit('player-ready', `${socket.username} is ready...`);
-        if (lobby_funcs.checkAllReady(lobbies, socket.lobby_code)) {
-            lobby_funcs.startLobby(lobbies, socket.lobby_code);
+        if (LobbyUtils.checkAllReady(lobbies, socket.lobby_code)) {
+            LobbyUtils.startLobby(lobbies, socket.lobby_code);
             io.in(socket.lobby_code).emit(
                 'start-game',
-                lobby_funcs.getPlayerNames(lobbies, socket.lobby_code),
+                LobbyUtils.getPlayerNames(lobbies, socket.lobby_code),
                 'All players ready; starting emulation...'
             );
         }
@@ -174,7 +175,7 @@ io.on('connection', (socket: userSocket) => {
             return;
         }
 
-        lobby_funcs.gymBeaten(lobbies, socket.lobby_code, gym_state);
+        LobbyUtils.gymBeaten(lobbies, socket.lobby_code, gym_state);
 
         // tell erbody that the gym was beaten
         socket.to(socket.lobby_code).emit('beat-gym', gym_state, `${socket.username} has beaten a new gym!`);
@@ -189,10 +190,10 @@ io.on('connection', (socket: userSocket) => {
         }
 
         // add upload to lobby
-        lobby_funcs.addUpload(lobbies, socket.lobby_code, socket.username, team_data);
-        if (lobby_funcs.checkAllUploaded(lobbies, socket.lobby_code)) {
-            lobby_funcs.generateDerangement(lobbies, socket.lobby_code);
-            // TODO: call socket.io here
+        LobbyUtils.addUpload(lobbies, socket.lobby_code, socket.username, team_data);
+        if (LobbyUtils.checkAllUploaded(lobbies, socket.lobby_code)) {
+            LobbyUtils.generateDerangement(lobbies, socket.lobby_code);
+            io.to(socket.lobby_code).emit('new-teams-ready');
         }
 
         callback('successful team upload');
@@ -205,7 +206,7 @@ io.on('connection', (socket: userSocket) => {
             return;
         }
 
-        callback(lobby_funcs.getDerangedData(lobbies, socket.lobby_code, socket.username), 'ok');
+        callback(LobbyUtils.getDerangedData(lobbies, socket.lobby_code, socket.username), 'ok');
     });
 
     /*
@@ -224,15 +225,15 @@ io.on('connection', (socket: userSocket) => {
         callback(expected_players, responce);
         return;
     });
-    */
 
     socket.on(signals.disconnect, () => {
         if (!socket.lobby_code || !socket.username) {
             return;
         }
 
-        lobby_funcs.handlePlayerDisconnect(lobbies, socket.lobby_code, socket.username);
+        LobbyUtils.handlePlayerDisconnect(lobbies, socket.lobby_code, socket.username);
     });
+    */
 
 });
 
